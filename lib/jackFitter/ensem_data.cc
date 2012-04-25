@@ -1,4 +1,6 @@
 #include "ensem_data.h"
+#include "itpp/itbase.h"
+
 
 //some search functions
 bool double_predicate(double a, double b){

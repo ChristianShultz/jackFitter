@@ -7,7 +7,7 @@ AM_CXXFLAGS = -I@top_srcdir@/lib \
 AM_LDFLAGS  = -L@top_builddir@/lib \
                @LDFLAGS@ @ADAT_LDFLAGS@
 
-LDADD = @ADAT_LIBS@ @ITPP_LIBS@ @LIBS@ -ljackFitter
+LDADD = -ljackFitter @ADAT_LIBS@ @ITPP_LIBS@ @LIBS@ 
 
 
 #

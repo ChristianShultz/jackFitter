@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "ensem/ensem.h"
 #include <cassert>
-#include <itpp/itbase.h>
+#include "itpp/itbase.h"
 #include <iostream>
 
 #include "linear_algebra.h"
