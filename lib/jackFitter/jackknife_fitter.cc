@@ -678,9 +678,13 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
   list = getFitList(fitComp);
 
   map<double, FitDescriptor>::const_iterator p = list.end();
-  bool success = false; rank = 0;
+  bool success = false;
 
-  while((!success) && (rank <= list.size()) ){
+if(list.begin() != list.end())
+{
+  while((!success)){
+	if(p == list.begin())
+		break;
     p--;
     FitDescriptor thisFit = p->second;
     JackFit& bestFit = getFit(thisFit);
@@ -689,9 +693,9 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
     else if(bestFit.getJackChisq() > 0){success = true;} //write a log message?
     //would like to also check that the jack fit is "compatible" with the average fit we started with ?
     
-    rank++;
   }
-  
+ }
+// THIS IS INSANE!!! 
   if(success){ return p->second;}
   else{ 
     cerr << "found no acceptable jackknife fits" << endl; 
