@@ -27,7 +27,7 @@ class EnsemFunction{
 //here's a concrete example
 class ConstTimesExp : public EnsemFunction{
  public:
- ConstTimesExp(EnsemReal weight_, EnsemReal mass_) : weight(weight_), mass(mass_), EnsemFunction(){}
+ ConstTimesExp(EnsemReal weight_, EnsemReal mass_) : EnsemFunction(), weight(weight_), mass(mass_){}
   
   EnsemReal operator()(double x) const{ return weight * exp( mass * Real(x) );}
     
@@ -37,7 +37,7 @@ class ConstTimesExp : public EnsemFunction{
 //here's a rather trivial example
 class One : public EnsemFunction{
  public:
- One(EnsemReal anything_) : anything(anything_), EnsemFunction(){};
+ One(EnsemReal anything_) :  EnsemFunction(), anything(anything_) {};
   
   EnsemReal operator()(double x) const { 
     EnsemReal one; one.resize(anything.size()); one = Real(1.0); return one; }
@@ -48,7 +48,7 @@ class One : public EnsemFunction{
 //
 class ConstDivideCosh : public EnsemFunction{
  public:
-  ConstDivideCosh(EnsemReal weight_, EnsemReal mass_, int T_) : weight(weight_), mass(mass_), T(T_), EnsemFunction(){}
+  ConstDivideCosh(EnsemReal weight_, EnsemReal mass_, int T_) :  EnsemFunction(), weight(weight_), mass(mass_), T(T_) {}
   
     EnsemReal operator()(double x) const{ 
       //      return weight / ( exp(- mass * Real( double(T/2) ) ) * cosh( mass * Real(x - T/2.0 ) )  ) ;
@@ -151,8 +151,8 @@ class EnsemData{
     //    cout << "making covariance" << endl;
   };
   bool isCovMade() const {return initCov;};
-  bool setSVCutoff(double cutoff){SVCutoff = cutoff;};
-  double getSVCutoff() const {return SVCutoff;};
+  bool setSVCutoff(double cutoff){SVCutoff = cutoff; return true;}; // CJS Edit, put in a return value
+  double getSVCutoff() const {return SVCutoff;};                    // to get g++ to shut up about it
 
   //inverse covariance
   void makeInvCov() const;
