@@ -6,7 +6,9 @@
 // suggests that matching timeslice-timeslice of eigenvectors is still imperfect
 
 
-
+// CJS - Does fitting Z across t0 even make sense when we have different numbers of 
+// resets on each t0.  Consider that there is an implicit normalization in the reduced 
+// subspace that is different for each t0..
 
 
 
@@ -25,6 +27,9 @@ FitZ::FitZ(EnsemData data_, int t0, Handle<FitComparator> fitComp_, int minTSlic
   Const* tmp1 = new Const; Handle<FitFunction> constant(tmp1);
 
   constant->setDefaultParValue("a", toDouble( mean(start) ) );
+
+
+// CJS -- shouldnt this line be setDefaultParError(...) ??
   constant->setDefaultParValue("a", toDouble( sqrt(variance(start)) ) );
   
   // need more intelligent handling if t0+1 is a baddy - NOT CURRENTLY PRESENT !!!!!!!!!!!

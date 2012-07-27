@@ -134,8 +134,8 @@ class ChiSquare : public FCNBase {
   void SetErrorDef(double def){theErrorDef = def;} //default 1. - see constructor
   
  private:
-  vector<double> y_data;
   vector<double> x_data; 
+  vector<double> y_data;
   itpp::mat invcov;
   Handle<FitFunction> ff;
   double theErrorDef;
