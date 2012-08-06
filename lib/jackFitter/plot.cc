@@ -1,6 +1,23 @@
 #include "plot.h"
-
+#include <string>
 AxisPlot::AxisPlot(){}
+
+AxisPlot::AxisPlot(const AxisPlot &o)
+{
+  plot << o.plot.str();
+}
+
+AxisPlot& AxisPlot::operator=(const AxisPlot &o)
+{
+  if(this != &o)
+  {
+    plot.str(std::string());
+    plot.clear();
+    plot << o.plot.str();
+  }
+  return *this;
+}
+
 
 void AxisPlot::addEnsemData(vector<int> t, EnsemVectorReal data, string style, int colour){
   //write the ensem data

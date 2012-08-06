@@ -13,6 +13,8 @@ using namespace ENSEM;
 class AxisPlot{	
  public:
   AxisPlot();
+  AxisPlot(const AxisPlot &o);
+  AxisPlot& operator=(const AxisPlot &o);
 	
   void addEnsemData(vector<int> t, EnsemVectorReal data, string style, int colour);
   void addEnsemData(vector<double> x, EnsemVectorReal data, string style, int colour);
