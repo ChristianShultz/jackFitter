@@ -7,7 +7,7 @@ AM_CXXFLAGS = 	-I@top_srcdir@/lib		\
 
 
 #jackFitter
-nobase_include_HEADERS =	jackFitter/ensem_data.h jackFitter/ensem_ensem_chisq_fitter.h jackFitter/fit_correlators.h jackFitter/fit_forms.h jackFitter/jackknife_fitter.h jackFitter/linear_algebra.h jackFitter/multi_princorr_fit.h jackFitter/plot.h
+nobase_include_HEADERS =	jackFitter/ensem_data.h jackFitter/ensem_ensem_chisq_fitter.h jackFitter/fit_correlators.h jackFitter/fit_forms.h jackFitter/jackknife_fitter.h jackFitter/linear_algebra.h jackFitter/multi_princorr_fit.h jackFitter/plot.h jackFitter/three_point_fit_forms.h
 #
 #Library
 #
@@ -15,4 +15,4 @@ nobase_include_HEADERS =	jackFitter/ensem_data.h jackFitter/ensem_ensem_chisq_fi
 lib_LIBRARIES = libjackFitter.a
 
 #jackFitter 
-libjackFitter_a_SOURCES = jackFitter/ensem_data.cc jackFitter/ensem_ensem_chisq_fitter.cc jackFitter/fit_correlators.cc jackFitter/fit_forms.cc jackFitter/jackknife_fitter.cc jackFitter/linear_algebra.cc jackFitter/multi_princorr_fit.cc jackFitter/plot.cc
+libjackFitter_a_SOURCES = jackFitter/ensem_data.cc jackFitter/ensem_ensem_chisq_fitter.cc jackFitter/fit_correlators.cc jackFitter/fit_forms.cc jackFitter/jackknife_fitter.cc jackFitter/linear_algebra.cc jackFitter/multi_princorr_fit.cc jackFitter/plot.cc jackFitter/three_point_fit_forms.cc

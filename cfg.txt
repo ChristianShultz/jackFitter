@@ -1,1 +1,0 @@
-./configure --prefix=$HOME CFLAGS="-O3 -fargument-noalias-global -finline-limit=50000 -funroll-all-loops -fpeel-loops -march=nocona -fopenmp -DUSE_OMP" CXX="g++" CXXFLAGS="-O3 -fargument-noalias-global -finline-limit=50000 -funroll-all-loops -fpeel-loops -march=nocona -fopenmp -DUSE_OMP"  LIBS="-lblas -llapack -lgfortran -lpthread" --with-adat=$HOME/git/adat  --with-itpp=$HOME
