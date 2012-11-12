@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 
   if((fitCrit != "chisq_per_dof") && (fitCrit != "Q") && (fitCrit != "Zfit") && (fitCrit != "QN"))
     { cerr << "fit criterion " << fitCrit << " is not known" << endl; 
-      cerr << "known fitCrit values are : chisq_per_dof, Q, fitZ, QN" << endl;  
+      cerr << "known fitCrit values are : chisq_per_dof, Q, Zfit, QN" << endl;  
       exit(1);
     }
  
