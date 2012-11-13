@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Fri Nov  9 17:20:51 2012
+ * Last Modified : Mon Nov 12 18:00:38 2012
 
  * Created By : shultz
 
@@ -20,8 +20,83 @@
 
 
 
-FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice) 
-  : m_fits(data) , m_fitComp(fitComp)
+
+// an example of a bias function -- exp(-p[0]*(p[1] -p[2])^2)
+double gaussianBiasFunction3(const std::vector<double> &p)
+{
+  if(p.size() != 3)
+  {
+    std::cout << __func__ << ": wrong number of parameters" << std::endl;
+    exit(1);
+  }
+
+  return exp(-p[0]*(p[1] -p[2])*(p[1] -p[2]));
+}
+
+// that didn't work too well, lets try sin(x)/x to make it fall less rapidly
+// -- sin(x)/x , x = (p[0]-p[1])*pi/p[2]
+double sinXdivXBiasFunction3(const std::vector<double> &p)
+{
+  if(p.size() != 3)
+  {
+    std::cout << __func__ << ": wrong number of parameters" << std::endl;
+    exit(1);
+  }
+
+  if(p[0] - p[1] == 0.)
+    return 1.;
+
+  double x = (p[0] - p[1])*acos(-1.)/p[2];
+
+  return sin(x)/x;
+}
+
+
+
+namespace
+{
+
+  std::vector<double> constructBiasParameters(const std::string &fname, double tmax, double tmin, double thigh, double tlow)
+  {
+
+    std::vector<double> biasParameters; 
+
+    if(fname == std::string("gaussianBiasFunction3"))
+    {
+      // try to bias the fits toward the center
+      double half_range = double(tmax - tmin)/2.;
+      double sigma = 2.*log(20)/(half_range*half_range);             // 1/20 supression on the edges varrying smoothly to centered      
+      double midpt = double(tmax - tmin)/2. + tmin;                  // it looked reasonable in mathematica..
+      double fit_midpt = double(thigh - tlow)/2. + tlow; 
+      biasParameters.push_back(sigma);
+      biasParameters.push_back(midpt);
+      biasParameters.push_back(fit_midpt);
+    }
+    else if(fname == std::string("sinXdivXBiasFunction3"))
+    {
+      double half = double(tmax - tmin)/2.;
+      double midpt = double(tmax - tmin)/2. + tmin; 
+      double fit_midpt = double(thigh - tlow)/2. + tlow; 
+      biasParameters.push_back(midpt);
+      biasParameters.push_back(fit_midpt);
+      biasParameters.push_back(half);
+    }
+    else
+    {
+      std::cout << __func__ << ": fname (" << fname << ") is not supported" << std::endl;
+      exit(1);
+    }
+
+    return biasParameters;
+  }
+
+
+} // namespace anonomyous 
+
+
+
+  FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice) 
+: m_fits(data) , m_fitComp(fitComp)
 {
 
   if(minTSlice < 5) 
@@ -81,10 +156,10 @@ FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitC
 
       std::stringstream ss; 
       ss << "DoubleExpPlusConst: t_low = " << t_low << " t_high = " << t_high; 
-
       // sanity 2 
+
       if(m_fits.getEnsemData().getNData() >= minTSlice)
-        m_fits.addFit(ss.str(),dExpPC);   
+        m_fits.addFit(ss.str(),dExpPC,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low));   
     }
 
   FitDescriptor best_dExpPC = m_fits.getBestFit(*m_fitComp);
@@ -125,7 +200,7 @@ FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitC
     int count = 1; 
     std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
     std::stringstream ss; 
-    ss << "                                   | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+    ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
 
     for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
     {
@@ -154,7 +229,29 @@ FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitC
     std::stringstream lab;
     lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
-    m_axis_plot = bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
+    std::stringstream plot;
+    plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
+
+#if 0
+
+    // edit the y value since Jack Fitter tends to zoom in on only the fit range 
+    // this is probably poor hackey quackery 
+    plot << "\n\n\n";
+    tp = double(t_f - 2);
+    tm = double(t_i +2);
+    xp = ENSEM::mean(data.getYUsingNearestX(tp));
+    xm = ENSEM::mean(data.getYUsingNearestX(tm));
+
+    // dont know which shape we got -- could be falling from t = 0 
+    double min,max;
+    min = std::min(ENSEM::toDouble(xm), ENSEM::toDouble(xp)); 
+    max = std::max(ENSEM::toDouble(xm) , ENSEM::toDouble(xp)); 
+
+    plot << "#\n#y " << min << " " << max << std::endl;
+
+#endif
+    m_axis_plot = plot.str();
+
 
   }
   else

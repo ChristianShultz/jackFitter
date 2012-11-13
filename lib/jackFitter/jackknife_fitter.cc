@@ -4,7 +4,7 @@
 //Fit Function
 //*******************************************************************
 FitFunction::FitFunction(int nPars_) : nPars(nPars_){
-  
+
 
   //default par names
   parNames.resize(nPars);
@@ -12,7 +12,7 @@ FitFunction::FitFunction(int nPars_) : nPars(nPars_){
     stringstream ss; ss << i; 
     parNames[i] = ss.str();
   }
-  
+
   //default default values & errors
   defaultParValues.resize(nPars);
   defaultParErrors.resize(nPars);
@@ -248,7 +248,7 @@ bool FitFunction::isParamLowerLimited(string name) const {
 //*******************************************************************************************
 double ChiSquare::operator()(const vector<double>& pars) const{
   if(pars.size() != ff->getNPars()){cerr << "chisquared can't be computed, wrong number of params" << endl; exit(1);}
-  
+
   int n = x_data.size();
   double chisq = 0;
   vector<double> y_theory;
@@ -272,7 +272,7 @@ double ChiSquare::operator()(const vector<double>& pars) const{
 //********************************************************************************************
 //           JACKKNIFE FITTER
 //*******************************************************************************************
-JackFit::JackFit(EnsemData data_, Handle<FitFunction> ff_): data(data_), ff(ff_){ 
+JackFit::JackFit(EnsemData data_, Handle<FitFunction> ff_): data(data_), ff(ff_) , m_have_bias_pars(false){ 
   //data is a fixed copy - if you want to change it, construct another fit object
   //ff is virtual so we use a pointer
 
@@ -318,7 +318,7 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   //set up the pars
   MnUserParameters upar;
   for(int i = 0; i < ff->getNPars(); i++)
-    { upar.Add(  (ff->getParName(i)).c_str(), startValues[i], startErrors[i]);}
+  { upar.Add(  (ff->getParName(i)).c_str(), startValues[i], startErrors[i]);}
   //fix if required
   for(int i = 0; i < ff->getNPars(); i++){ if(ff->isParamFixed(i)){upar.Fix(i);}; }
   //limit if required
@@ -336,12 +336,12 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   //MINIMIZE
   FunctionMinimum min = mini();
   bool fitSuccess = min.IsValid();
- 
+
   /*  cout << "in runBinFit, ran a fit, was ";
-  if(fitSuccess){cout << "successful";}
-  else{cout << "unsuccessful";}
-  cout << endl;
-  */
+      if(fitSuccess){cout << "successful";}
+      else{cout << "unsuccessful";}
+      cout << endl;
+   */
   //dump the result
   if(bin == -1){
     avgParValues.resize(ff->getNPars());
@@ -362,13 +362,13 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   }
   else{
     for(int i = 0; i < ff->getNPars(); i++)
-      {pokeEnsem(scaledJackParValues[i] , Real(min.UserState().Value(i)) , bin);}
+    {pokeEnsem(scaledJackParValues[i] , Real(min.UserState().Value(i)) , bin);}
     jackChisqs[bin] = min.Fval();
     jackFitSuccess[bin] = fitSuccess;
     stringstream report; report << min;
     jackFitReports[bin] = report.str();
   }
-    
+
   return fitSuccess;
 }
 
@@ -468,9 +468,9 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
   vector<double> fit_mean; 
   vector<double> fit_mean_plus_err;
   vector<double> fit_mean_minus_err;
-  
+
   double dx = (xmax - xmin) / 100.; //hardwired 100 point resolution
-  
+
   for(int ix = 0; ix < 101; ix++){
     double xx = xmin + (dx * double(ix));
     x.push_back(xx);
@@ -484,7 +484,7 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
       double f = (*ff)(pars, xx);
       pokeEnsem(yscaled, Real(f), bin);
     }
-    
+
     y = rescaleEnsemUp(yscaled);
     EnsemReal w = weightFn(xx);
     y *= w;
@@ -500,12 +500,12 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
   //make the plot
   AxisPlot plot;
   plot.setXRange(xmin, xmax);
-    
+
   //find the lowest/highest x in the fit
   vector<double> x_data = data.getXData();
   double xfit_min = *min_element(x_data.begin(), x_data.end());
   double xfit_max = *max_element(x_data.begin(), x_data.end());
-  
+
   //write the fit plot
   //below the fit region
   vector<double> xdum;
@@ -546,15 +546,15 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
     weighted_data.push_back( weightFn(x_data[i]) * peekObs(data.getYData() , i) );
   }
   plot.addEnsemData(x_data, weighted_data, "\\sq", 1);
-  
+
   //add the hidden data
   if(data.getTotalNData() > data.getNData()){
     vector<EnsemReal> off_weighted_data;
     vector<double> off_x_data;
     for(int i = 0; i < data.getTotalNData(); i++){
       if( !((data.getActiveDataList())[i]) ){
-	off_x_data.push_back( (data.getAllXData())[i] );
-	off_weighted_data.push_back( weightFn( (data.getAllXData())[i] ) * peekObs(data.getAllYData() , i) );
+        off_x_data.push_back( (data.getAllXData())[i] );
+        off_weighted_data.push_back( weightFn( (data.getAllXData())[i] ) * peekObs(data.getAllYData() , i) );
       }
     }
     plot.addEnsemData(off_x_data, off_weighted_data, "\\di", 3);
@@ -572,7 +572,7 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
   }
   double ymax = *max_element(yp.begin(), yp.end());
   if(ymax > 0){ ymax *= 1.10; }else{ ymax *= 0.9; }
-  
+
   double ymin = *min_element(ym.begin(), ym.end());
   if(ymin > 0){ ymin *= 0.9; }else{ ymin *= 1.10; }
 
@@ -580,10 +580,30 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
 
   //add a label
   plot.addLabel(xmin + 10*dx , ymax - 0.05*(ymax - ymin) , label, 1 , 1.0);
- 
+
   //  plot.sendToFile(filename);
   return plot.getAxisPlotString();
 
+}
+
+
+void JackFit::setBiasParameters(const std::vector<double> &pars)
+{
+  m_bias_parameters = pars;
+  m_have_bias_pars = true;
+}
+
+
+std::vector<double> JackFit::getBiasParameters(void) const
+{
+
+  if(!!!m_have_bias_pars)
+  {
+    std::cerr << __func__ << ": missing bias parameters, exiting" << std::endl;
+    exit(1);
+  }
+
+  return m_bias_parameters;
 }
 
 
@@ -610,6 +630,22 @@ void JackFitLog::addFit(string fitname, Handle<FitFunction> ff){
   } 
 }
 
+// allow for passing in an extra set of external bias parameters 
+// these get used by the fit comparator
+void JackFitLog::addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters)
+{
+  JackFit fit(data,ff);
+  fit.setBiasParameters(biasParameters);
+  fit.runAvgFit();
+
+  FitDescriptor fitDesc(ff, data.getActiveDataList(), fitname);
+  if(fit.getAvgFitSuccess()){ 
+    keys.push_back(fitDesc);
+    fits.push_back(fit); 
+  } 
+
+}
+
 bool fitDescriptorPredicate(const FitDescriptor& a, const FitDescriptor& b){
   if( ( a.ff.operator->() == b.ff.operator->() ) && (a.activeData == b.activeData) && (a.fitname == b.fitname) ){ return true;}
   else{return false;}
@@ -619,11 +655,11 @@ void JackFitLog::removeFit(FitDescriptor fitDesc){
 
   vector<FitDescriptor>::iterator p;
   vector<FitDescriptor> dum; dum.push_back(fitDesc);
-  
+
   p = search(keys.begin(), keys.end(), dum.begin(), dum.end(), fitDescriptorPredicate);
   int pos = p - keys.begin();
   keys.erase(p);
-  
+
   vector<JackFit>::iterator pp;
   pp = fits.begin() + pos;
   fits.erase(pp);
@@ -631,21 +667,21 @@ void JackFitLog::removeFit(FitDescriptor fitDesc){
 
 
 map<double, FitDescriptor> JackFitLog::getFitList(FitComparator& fitComp) const{
-  
+
   map<double, FitDescriptor> list;
-  
+
   for(int i = 0; i < keys.size(); i++){
     double fitCrit = fitComp(keys[i] , fits[i]);
     list.insert( make_pair(fitCrit, keys[i]) );
   }
-  
+
   return list;
 }
 
 JackFit& JackFitLog::getFit(FitDescriptor fitDesc){
   vector<FitDescriptor>::iterator p;
   vector<FitDescriptor> dum; dum.push_back(fitDesc);
-  
+
   p = search(keys.begin(), keys.end(), dum.begin(), dum.end(), fitDescriptorPredicate);
   int pos = p - keys.begin();
   vector<JackFit>::iterator pp;
@@ -658,18 +694,18 @@ JackFit& JackFitLog::getFit(FitDescriptor fitDesc){
 FitDescriptor JackFitLog::getBestFit(FitComparator& fitComp){
   //at least one fit must have suceeded
 
- map<double, FitDescriptor> list;
- list = getFitList(fitComp);
- 
- //this use to be a failure mode.. 
- if(list.end() == list.begin())
-   {
-     cerr << "no fits present" << endl;
-     exit(1);
-   }
- map<double, FitDescriptor>::const_iterator p = list.end(); p--;
+  map<double, FitDescriptor> list;
+  list = getFitList(fitComp);
 
- return p->second;
+  //this use to be a failure mode.. 
+  if(list.end() == list.begin())
+  {
+    cerr << "no fits present" << endl;
+    exit(1);
+  }
+  map<double, FitDescriptor>::const_iterator p = list.end(); p--;
+
+  return p->second;
 }
 
 FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
@@ -680,29 +716,29 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
   map<double, FitDescriptor>::const_iterator p = list.end();
   bool success = false;
 
-if(list.begin() != list.end())
-{
-  while((!success)){
-	if(p == list.begin())
-		break;
-    p--;
-    FitDescriptor thisFit = p->second;
-    JackFit& bestFit = getFit(thisFit);
-    bestFit.runJackFit();
-    if(bestFit.getNFailedFits() > 0){} //cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;} //write a log message ?
-    else if(bestFit.getJackChisq() > 0){success = true;} //write a log message?
-    //would like to also check that the jack fit is "compatible" with the average fit we started with ?
-    
+  if(list.begin() != list.end())
+  {
+    while((!success)){
+      if(p == list.begin())
+        break;
+      p--;
+      FitDescriptor thisFit = p->second;
+      JackFit& bestFit = getFit(thisFit);
+      bestFit.runJackFit();
+      if(bestFit.getNFailedFits() > 0){} //cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;} //write a log message ?
+      else if(bestFit.getJackChisq() > 0){success = true;} //write a log message?
+      //would like to also check that the jack fit is "compatible" with the average fit we started with ?
+
   }
- }
+}
 // THIS IS INSANE!!! 
-  if(success){ return p->second;}
-  else{ 
-    cerr << "found no acceptable jackknife fits" << endl; 
-    FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
-    fake.fitname = "FAILED";
-    return fake;
-  } 
+if(success){ return p->second;}
+else{ 
+  cerr << "found no acceptable jackknife fits" << endl; 
+  FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
+  fake.fitname = "FAILED";
+  return fake;
+} 
 
 }
 
