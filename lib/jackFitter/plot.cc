@@ -105,7 +105,7 @@ void AxisPlot::setYRange(double ymin, double ymax){plot << "#y " << ymin << " " 
 void AxisPlot::addLabel(double xpos, double ypos, string label, int colour, double size)
 {
   plot << "#e0" << endl << "#c0" << endl << "#m " << colour << endl << "#cs " << size << endl ;
-  plot << xpos <<" " << ypos <<"\"" << label << "\"" << endl;
+  plot << xpos <<" " << ypos <<"\"" << label << "\"" << endl << endl << "#" << endl;
 }
 
 void AxisPlot::addEnsemData(EnsemData& data){

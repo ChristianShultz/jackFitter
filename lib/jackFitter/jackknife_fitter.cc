@@ -587,6 +587,141 @@ string JackFit::makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double
 }
 
 
+
+AxisPlot JackFit::getJackFitPlotAxis(double xmin, double xmax, string label){
+  int nBins = data.getNBins();
+  EnsemReal dum; dum.resize(nBins);
+  One one(dum); //EnsemFunction weighting that does nothing
+  return getJackFitPlotAxis(one, xmin, xmax, label);
+}
+
+AxisPlot JackFit::getJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double xmax, string label){
+  vector<double> x; 
+  vector<double> fit_mean; 
+  vector<double> fit_mean_plus_err;
+  vector<double> fit_mean_minus_err;
+
+  double dx = (xmax - xmin) / 100.; //hardwired 100 point resolution
+
+  for(int ix = 0; ix < 101; ix++){
+    double xx = xmin + (dx * double(ix));
+    x.push_back(xx);
+
+    EnsemReal yscaled; yscaled.resize(data.getNBins());
+    EnsemReal y = yscaled;
+
+    for(int bin = 0; bin < data.getNBins(); bin++){
+      vector<double> pars;
+      for(int i = 0; i < ff->getNPars(); i++){ pars.push_back( toDouble( scaledJackParValues[i].elem(bin) ) );}
+      double f = (*ff)(pars, xx);
+      pokeEnsem(yscaled, Real(f), bin);
+    }
+
+    y = rescaleEnsemUp(yscaled);
+    EnsemReal w = weightFn(xx);
+    y *= w;
+
+    double m = toDouble(mean(y)); double e = toDouble(sqrt(variance(y)));
+    fit_mean.push_back( m );
+    fit_mean_plus_err.push_back( m + e );
+    fit_mean_minus_err.push_back( m - e );    
+  }
+
+  //  cout << "DEBUG:: made the data" << endl;	
+
+  //make the plot
+  AxisPlot plot;
+  plot.setXRange(xmin, xmax);
+
+  //find the lowest/highest x in the fit
+  vector<double> x_data = data.getXData();
+  double xfit_min = *min_element(x_data.begin(), x_data.end());
+  double xfit_max = *max_element(x_data.begin(), x_data.end());
+
+  //write the fit plot
+  //below the fit region
+  vector<double> xdum;
+  vector<double> d, dp, dm; 
+  int ix = 0;
+  while (x[ix] <= xfit_min){
+    xdum.push_back(x[ix]);
+    d.push_back(fit_mean[ix]); dp.push_back(fit_mean_plus_err[ix]); dm.push_back(fit_mean_minus_err[ix]); 
+    ix++;
+  }
+  plot.addLineData(xdum, d, 3); plot.addLineData(xdum, dp, 3); plot.addLineData(xdum, dm, 3);  
+  ix--;
+
+  //in the fit region
+  xdum.clear(); d.clear(); dp.clear(); dm.clear();
+  while (x[ix] <= xfit_max){
+    xdum.push_back(x[ix]);
+    d.push_back(fit_mean[ix]); dp.push_back(fit_mean_plus_err[ix]); dm.push_back(fit_mean_minus_err[ix]); 
+    ix++;
+  }
+  plot.addLineData(xdum, d, 2); plot.addLineData(xdum, dp, 2); plot.addLineData(xdum, dm, 2);
+  ix--;
+
+  //above the fit region
+  xdum.clear(); d.clear(); dp.clear(); dm.clear();
+  while (ix < 101){
+    xdum.push_back(x[ix]);
+    d.push_back(fit_mean[ix]); dp.push_back(fit_mean_plus_err[ix]); dm.push_back(fit_mean_minus_err[ix]); 
+    ix++;
+  }
+  plot.addLineData(xdum, d, 3); plot.addLineData(xdum, dp, 3); plot.addLineData(xdum, dm, 3);
+
+  //  cout << "DEBUG: added the fit data" << endl;
+
+  //add the raw data
+  vector<EnsemReal> weighted_data;
+  for(int i = 0; i < data.getNData(); i++){
+    weighted_data.push_back( weightFn(x_data[i]) * peekObs(data.getYData() , i) );
+  }
+  plot.addEnsemData(x_data, weighted_data, "\\sq", 1);
+
+  //add the hidden data
+  if(data.getTotalNData() > data.getNData()){
+    vector<EnsemReal> off_weighted_data;
+    vector<double> off_x_data;
+    for(int i = 0; i < data.getTotalNData(); i++){
+      if( !((data.getActiveDataList())[i]) ){
+        off_x_data.push_back( (data.getAllXData())[i] );
+        off_weighted_data.push_back( weightFn( (data.getAllXData())[i] ) * peekObs(data.getAllYData() , i) );
+      }
+    }
+    plot.addEnsemData(off_x_data, off_weighted_data, "\\di", 3);
+  }
+
+  //set the yrange using the active data
+  vector<double> yp;
+  vector<double> ym;
+  for(int i=0; i < data.getNData(); i++){
+    EnsemReal tmp = weighted_data[i];
+    double m = toDouble(mean(tmp));
+    double e = toDouble( sqrt( variance( tmp ) ) );
+    yp.push_back( m + e );
+    ym.push_back( m - e );
+  }
+  double ymax = *max_element(yp.begin(), yp.end());
+  if(ymax > 0){ ymax *= 1.10; }else{ ymax *= 0.9; }
+
+  double ymin = *min_element(ym.begin(), ym.end());
+  if(ymin > 0){ ymin *= 0.9; }else{ ymin *= 1.10; }
+
+  plot.setYRange(ymin, ymax);
+
+  //add a label
+  plot.addLabel(xmin + 10*dx , ymax - 0.05*(ymax - ymin) , label, 1 , 1.0);
+
+  //  plot.sendToFile(filename);
+  return plot;
+
+}
+
+
+
+
+
 void JackFit::setBiasParameters(const std::vector<double> &pars)
 {
   m_bias_parameters = pars;

@@ -193,6 +193,10 @@ class JackFit
     string makeJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double xmax, string label); 
     string makeJackFitPlotAxis(double xmin, double xmax, string label); 
 
+    // CJS -- return a plot object for further editing 
+    AxisPlot getJackFitPlotAxis(EnsemFunction& weightFn, double xmin, double xmax, std::string label);
+    AxisPlot getJackFitPlotAxis(double xmin, double xmax, std::string label);
+
     // CJS -- added a vector of parameters that can be used to apply a bias function
     // in the Fit comparator routines
     void setBiasParameters(const std::vector<double> &pars);
