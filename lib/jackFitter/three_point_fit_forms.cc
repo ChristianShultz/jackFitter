@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Wed Nov 28 14:15:29 2012
+ * Last Modified : Fri Feb  1 14:32:50 2013
 
  * Created By : shultz
 
@@ -27,10 +27,12 @@
 
 std::string toString(const ThreePointComparatorProps_t &prop)
 {
-  std::stringstream ss; 
-  ss << "baseProp = " << prop.baseProp << "   biasProp = " << prop.biasProp << "   extraProps = ";
+  std::stringstream ss;
+  ss << "fit_type = " << prop.fit_type;  
+  ss << " baseProp = " << prop.baseProp << "   biasProp = " << prop.biasProp << "   extraProps = ";
   for(int i = 0; i < prop.extraProps.size(); ++i)
     ss << prop.extraProps[i] << " ";
+  ss << "   tlow = " << prop.tlow << "   thigh = " << prop.thigh; 
   return ss.str();
 }
 
@@ -63,13 +65,19 @@ namespace
 void read(ADATXML::XMLReader &xml, const std::string &path, ThreePointComparatorProps_t &prop)
 {
   ADATXML::XMLReader ptop(xml,path);
+  doXMLRead(ptop,"fit_type",prop.fit_type,__PRETTY_FUNCTION__); 
   doXMLRead(ptop,"baseProp",prop.baseProp,__PRETTY_FUNCTION__);
   doXMLRead(ptop,"biasProp",prop.biasProp,__PRETTY_FUNCTION__);
   doXMLRead(ptop,"extraProps",prop.extraProps,__PRETTY_FUNCTION__);
+  doXMLRead(ptop,"tlow",prop.tlow,__PRETTY_FUNCTION__);
+  doXMLRead(ptop,"thigh",prop.thigh,__PRETTY_FUNCTION__); 
 }
 
-
-
+// an example of the a bias function
+double noBiasFunction(const std::vector<double> &p)
+{
+  return 1.;
+}
 
 // an example of a bias function -- exp(-p[0]*(p[1] -p[2])^2)
 double gaussianBiasFunction3(const std::vector<double> &p)
@@ -114,6 +122,9 @@ namespace
 
     m_map.insert(value_type( "gaussianBiasFunction3", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorGaussianBias())));
     m_map.insert(value_type(  "sinXdivXBiasFunction3", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorSinXdivXBias())));
+    m_map.insert(value_type( "noBiasFunction", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorNoBias())));
+    m_map.insert(value_type( "none", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorNoBias())));
+
 
     type_t::const_iterator it; 
     it = m_map.find(name); 
@@ -197,7 +208,7 @@ namespace
 ADAT::Handle<FitComparator> constructThreePointFitComparator(const ThreePointComparatorProps_t &prop)
 {
   ADAT::Handle<FitComparator> multiComp(new
-       ThreePointMultiComparator(getBasicComparator(prop.baseProp),getExtraComparators(prop)));
+      ThreePointMultiComparator(getBasicComparator(prop.baseProp),getExtraComparators(prop)));
   ADAT::Handle<FitComparatorBiasFunction> biasFunction(getBiasComparator(prop.biasProp));
 
   return ADAT::Handle<FitComparator>(new BiasedFitComparator(multiComp,biasFunction));
@@ -240,6 +251,10 @@ namespace
       biasParameters.push_back(midpt);
       biasParameters.push_back(fit_midpt);
       biasParameters.push_back(half);
+    }
+    else if((fname == std::string("none")) || (fname == std::string("noBiasFunction")))
+    {
+      // do nothing.. just don't exit..
     }
     else
     {
@@ -529,8 +544,10 @@ namespace
   {
     ADAT::Handle<FitFunction> tpConst  (new ThreePointConstant());
 
-    if(!!!isCompatibleWithConstant(data.getAllXData(), data.getAllYData()))
-      return tpConst; 
+    /*
+       if(!!!isCompatibleWithConstant(data.getAllXData(), data.getAllYData()))
+       return tpConst; 
+     */
 
     std::vector<double> x = data.getAllXData();
     double guess = ENSEM::toDouble(ENSEM::mean(data.getYUsingNearestX(x.at(x.size()/2)))); 
@@ -567,14 +584,20 @@ namespace
 
 
 
-  FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice) 
+  FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice, const std::string &fit_type) 
 : m_fits(data) , m_fitComp(fitComp)
 {
+  ADAT::Handle<FitFunction> dExpPC,Constant; 
 
-
-  ADAT::Handle<FitFunction> dExpPC = trydExpPCFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-  ADAT::Handle<FitFunction> Constant = tryConstantFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-
+  if((fit_type == "dExpPC") || (fit_type == "all"))
+    dExpPC = trydExpPCFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+  else if((fit_type == "const") || (fit_type == "all"))
+    Constant = tryConstantFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+  else
+  {
+    std::cerr << __func__ << ": unknown fit type " << fit_type << "options are {all , dExpPC , const }" << std::endl;
+    exit(1);
+  }
 
   //  FitDescriptor best_dExpPC = m_fits.getBestFit(*m_fitComp);
 
@@ -599,122 +622,128 @@ namespace
     m_fit_summary = "FAILED";
     // no plot
   }
-  else if (best.ff->getFitType() == Constant->getFitType())
+  else  if((fit_type == "const") || (fit_type == "all"))
   {
-    m_fit_type = dExpPC->getFitType(); 
-    JackFit& bestFit = m_fits.getFit(best);
-    m_FF = bestFit.getJackFitParValue("C");
-    m_chisq = bestFit.getJackChisq();
-    m_nDoF = bestFit.getNDoF();
-    m_best_fit_name = best.fitname;
-
-    int count = 1; 
-    std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
-    std::stringstream ss; 
-    ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
-
-    for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
+    if (best.ff->getFitType() == Constant->getFitType())
     {
-      JackFit& thisFit = m_fits.getFit(p->second);
-      double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
-      double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
-      ss << setw(35) <<(p->second).fitname << "|";
-      ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
-      ss << setw(12) << fixed << setprecision(3) << Q <<"|";
-      ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+      m_fit_type = Constant->getFitType(); 
+      JackFit& bestFit = m_fits.getFit(best);
+      m_FF = bestFit.getJackFitParValue("C");
+      m_chisq = bestFit.getJackChisq();
+      m_nDoF = bestFit.getNDoF();
+      m_best_fit_name = best.fitname;
 
-      if(count == rank)
+      int count = 1; 
+      std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
+      std::stringstream ss; 
+      ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+
+      for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
       {
-        ss << "*";
+        JackFit& thisFit = m_fits.getFit(p->second);
+        double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
+        double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
+        ss << setw(35) <<(p->second).fitname << "|";
+        ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
+        ss << setw(12) << fixed << setprecision(3) << Q <<"|";
+        ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+
+        if(count == rank)
+        {
+          ss << "*";
+        }
+        else
+        {
+          ss << " ";
+        }
+        ss << " FF=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("C") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("C");
+        ss << endl;
+        count++;
       }
-      else
-      {
-        ss << " ";
-      }
-      ss << " FF=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("C") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("C");
-      ss << endl;
-      count++;
+
+      m_fit_summary = ss.str();
+
+      std::stringstream lab;
+      lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+      lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
+      std::stringstream plot;
+      plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
+
+      m_axis_plot = plot.str();
+
+      AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
+
+      m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("Constant"),t_f, t_i);
+
     }
-
-    m_fit_summary = ss.str();
-
-    std::stringstream lab;
-    lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-    lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
-    std::stringstream plot;
-    plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
-
-    m_axis_plot = plot.str();
-
-    AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
-
-    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("dExpPC"),t_f, t_i);
-
   }
-  else if (best.ff->getFitType() == dExpPC->getFitType())
+  else if((fit_type == "dExpPC") || (fit_type == "all"))
   {
-    m_fit_type = dExpPC->getFitType(); 
-    JackFit& bestFit = m_fits.getFit(best);
-    m_FF = bestFit.getJackFitParValue("C");
-    m_A1 = bestFit.getJackFitParValue("A1");
-    m_E1 = bestFit.getJackFitParValue("E1");
-    m_A2 = bestFit.getJackFitParValue("A2");
-    m_E2 = bestFit.getJackFitParValue("E2");
-
-    m_chisq = bestFit.getJackChisq();
-    m_nDoF = bestFit.getNDoF();
-    m_best_fit_name = best.fitname;
-
-    int count = 1; 
-    std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
-    std::stringstream ss; 
-    ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
-
-    for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
+    if (best.ff->getFitType() == dExpPC->getFitType())
     {
-      JackFit& thisFit = m_fits.getFit(p->second);
-      double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
-      double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
-      ss << setw(35) <<(p->second).fitname << "|";
-      ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
-      ss << setw(12) << fixed << setprecision(3) << Q <<"|";
-      ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+      m_fit_type = dExpPC->getFitType(); 
+      JackFit& bestFit = m_fits.getFit(best);
+      m_FF = bestFit.getJackFitParValue("C");
+      m_A1 = bestFit.getJackFitParValue("A1");
+      m_E1 = bestFit.getJackFitParValue("E1");
+      m_A2 = bestFit.getJackFitParValue("A2");
+      m_E2 = bestFit.getJackFitParValue("E2");
 
-      if(count == rank)
+      m_chisq = bestFit.getJackChisq();
+      m_nDoF = bestFit.getNDoF();
+      m_best_fit_name = best.fitname;
+
+      int count = 1; 
+      std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
+      std::stringstream ss; 
+      ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+
+      for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
       {
-        ss << "*";
-      }
-      else
-      {
-        ss << " ";
-      }
-      ss << " FF=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("C") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("C");
+        JackFit& thisFit = m_fits.getFit(p->second);
+        double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
+        double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
+        ss << setw(35) <<(p->second).fitname << "|";
+        ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
+        ss << setw(12) << fixed << setprecision(3) << Q <<"|";
+        ss << setw(12) << scientific << setprecision(3) << p->first << "|";
 
-      if( ((p->second).ff).operator->() == dExpPC.operator->() )
-      {
-        ss << ", E1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("E1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("E1");
-        ss << ", E2=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("E2") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("E2");
-        ss << ", A1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A1");
-        ss << ", A2=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A2") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A2");
-      }
-      ss << endl;count++;
-    } 
+        if(count == rank)
+        {
+          ss << "*";
+        }
+        else
+        {
+          ss << " ";
+        }
+        ss << " FF=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("C") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("C");
+
+        if( ((p->second).ff).operator->() == dExpPC.operator->() )
+        {
+          ss << ", E1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("E1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("E1");
+          ss << ", E2=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("E2") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("E2");
+          ss << ", A1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A1");
+          ss << ", A2=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A2") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A2");
+        }
+        ss << endl;count++;
+      } 
 
 
-    m_fit_summary = ss.str();
+      m_fit_summary = ss.str();
 
-    std::stringstream lab;
-    lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-    lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
-    std::stringstream plot;
-    plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
+      std::stringstream lab;
+      lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+      lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
+      std::stringstream plot;
+      plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
 
-    m_axis_plot = plot.str();
+      m_axis_plot = plot.str();
 
-    AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
+      AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
 
-    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("dExpPC"),t_f, t_i);
+      m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("dExpPC"),t_f, t_i);
 
+    }
   }
   else
   {

@@ -162,7 +162,7 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
     ConstTimesExp expWeight(exp(- mass_0 * Real(t0)) , mass_0);
     
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-    lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
+    lab << "; m(t0=" << t0 << ")=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
     
     axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(tmax + 5.5), lab.str() );
   }

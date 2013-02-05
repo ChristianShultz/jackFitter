@@ -21,9 +21,12 @@
 
 struct ThreePointComparatorProps_t 
 {
+  std::string fit_type;
   std::string baseProp; 
   std::string biasProp;
   ADATXML::Array<std::string> extraProps;
+  int tlow;
+  int thigh; // the fit range
 };
 
 std::string toString(const ThreePointComparatorProps_t &);
@@ -95,7 +98,7 @@ struct ThreePointMultiComparator : public FitComparator
 
   inline double operator()(const FitDescriptor& fitDesc, const JackFit& fit) const
   {
-  
+
     double ret = (*m_base_comparator)(fitDesc,fit);
 
     if(!!!m_comps.empty())
@@ -293,6 +296,21 @@ struct FitComparatorBiasFunction
 };
 
 
+// no bi
+double noBiasFunction(const std::vector<double> &p);
+
+struct FitComparatorNoBias : public FitComparatorBiasFunction
+{
+  FitComparatorNoBias(void)
+    : FitComparatorBiasFunction(&noBiasFunction) {}
+
+  FitComparatorNoBias(const FitComparatorNoBias &o)
+    : FitComparatorBiasFunction(o) {}
+
+  std::string biasFunctionNam(void) const {return std::string("noBiasFunction");}
+
+};
+
 
 // an example of a bias function -- exp(-p[0]*(p[1] -p[2])^2)
 double gaussianBiasFunction3(const std::vector<double> &p); 
@@ -392,7 +410,7 @@ struct FitThreePoint
 {
 
   // constructor
-  FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice);
+  FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice, const std::string &fit_type);
 
   // the fit
   void saveFitPlot(const std::string &filename) const;
