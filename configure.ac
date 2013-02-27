@@ -90,7 +90,7 @@ fi
 AC_MSG_NOTICE([Found ITPP configuration program ${LIBXML2XX_CONFIG}])
 AC_SUBST(ITPP_CXXFLAGS, "`${ITPP_CONFIG} --cflags`")
 AC_MSG_NOTICE([ITPP compile flags: ${ITPP_CXXFLAGS}])
-AC_SUBST(ITPP_LIBS,     "`${ITPP_CONFIG} --libs`")
+AC_SUBST(ITPP_LIBS,     "`${ITPP_CONFIG} --static --libs`")
 AC_MSG_NOTICE([ITPP libraries flags: ${ITPP_LIBS}])
 
 
