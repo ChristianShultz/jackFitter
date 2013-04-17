@@ -21,6 +21,8 @@
 #include <iostream>
 #include <map>
 
+#include <omp.h>
+
 #include <itpp/itbase.h>
 #include "ensem/ensem.h"
 #include "adat/handle.h"

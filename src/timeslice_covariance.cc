@@ -48,6 +48,13 @@ int main(int argc, char *argv[]){
   cout << "singular values : " << endl << s << endl;
   cout << "condition number = " << s(0) / (s.right(1))(0) << endl;
 
+  cout << "==================================" << endl;
   cout << "unnormalised covariance = " << endl << cov << endl;
+  itpp::svd(cov, U, s, V);
+  cout << "singular values : " << endl << s << endl;
+  cout << "condition number = " << s(0) / (s.right(1))(0) << endl;
+
+
+  //cout << "unnormalised inverse covariance = " << endl << itpp::inv(cov) << endl;
 
 }

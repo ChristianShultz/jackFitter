@@ -36,7 +36,8 @@ bin_PROGRAMS = fit_Z_const_and_exp$(EXEEXT) fit_corr_cosh$(EXEEXT) \
 	fit_corr_cosh_and_const$(EXEEXT) fit_corr_exp$(EXEEXT) \
 	fit_corr_exp_and_const$(EXEEXT) \
 	fit_multiple_princorrs$(EXEEXT) fit_prin_corr$(EXEEXT) \
-	generate_ensem$(EXEEXT) timeslice_covariance$(EXEEXT)
+	generate_ensem$(EXEEXT) timeslice_covariance$(EXEEXT) \
+	fit_corr_finT$(EXEEXT) fit_const$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -53,6 +54,10 @@ am_fit_Z_const_and_exp_OBJECTS = fit_Z_const_and_exp.$(OBJEXT)
 fit_Z_const_and_exp_OBJECTS = $(am_fit_Z_const_and_exp_OBJECTS)
 fit_Z_const_and_exp_LDADD = $(LDADD)
 fit_Z_const_and_exp_DEPENDENCIES =
+am_fit_const_OBJECTS = fit_const.$(OBJEXT)
+fit_const_OBJECTS = $(am_fit_const_OBJECTS)
+fit_const_LDADD = $(LDADD)
+fit_const_DEPENDENCIES =
 am_fit_corr_cosh_OBJECTS = fit_corr_cosh.$(OBJEXT)
 fit_corr_cosh_OBJECTS = $(am_fit_corr_cosh_OBJECTS)
 fit_corr_cosh_LDADD = $(LDADD)
@@ -71,6 +76,10 @@ am_fit_corr_exp_and_const_OBJECTS = fit_corr_exp_and_const.$(OBJEXT)
 fit_corr_exp_and_const_OBJECTS = $(am_fit_corr_exp_and_const_OBJECTS)
 fit_corr_exp_and_const_LDADD = $(LDADD)
 fit_corr_exp_and_const_DEPENDENCIES =
+am_fit_corr_finT_OBJECTS = fit_corr_finT.$(OBJEXT)
+fit_corr_finT_OBJECTS = $(am_fit_corr_finT_OBJECTS)
+fit_corr_finT_LDADD = $(LDADD)
+fit_corr_finT_DEPENDENCIES =
 am_fit_multiple_princorrs_OBJECTS = fit_multiple_princorrs.$(OBJEXT)
 fit_multiple_princorrs_OBJECTS = $(am_fit_multiple_princorrs_OBJECTS)
 fit_multiple_princorrs_LDADD = $(LDADD)
@@ -96,16 +105,18 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_corr_cosh_SOURCES) \
-	$(fit_corr_cosh_and_const_SOURCES) $(fit_corr_exp_SOURCES) \
-	$(fit_corr_exp_and_const_SOURCES) \
-	$(fit_multiple_princorrs_SOURCES) $(fit_prin_corr_SOURCES) \
-	$(generate_ensem_SOURCES) $(timeslice_covariance_SOURCES)
-DIST_SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_corr_cosh_SOURCES) \
-	$(fit_corr_cosh_and_const_SOURCES) $(fit_corr_exp_SOURCES) \
-	$(fit_corr_exp_and_const_SOURCES) \
-	$(fit_multiple_princorrs_SOURCES) $(fit_prin_corr_SOURCES) \
-	$(generate_ensem_SOURCES) $(timeslice_covariance_SOURCES)
+SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_const_SOURCES) \
+	$(fit_corr_cosh_SOURCES) $(fit_corr_cosh_and_const_SOURCES) \
+	$(fit_corr_exp_SOURCES) $(fit_corr_exp_and_const_SOURCES) \
+	$(fit_corr_finT_SOURCES) $(fit_multiple_princorrs_SOURCES) \
+	$(fit_prin_corr_SOURCES) $(generate_ensem_SOURCES) \
+	$(timeslice_covariance_SOURCES)
+DIST_SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_const_SOURCES) \
+	$(fit_corr_cosh_SOURCES) $(fit_corr_cosh_and_const_SOURCES) \
+	$(fit_corr_exp_SOURCES) $(fit_corr_exp_and_const_SOURCES) \
+	$(fit_corr_finT_SOURCES) $(fit_multiple_princorrs_SOURCES) \
+	$(fit_prin_corr_SOURCES) $(generate_ensem_SOURCES) \
+	$(timeslice_covariance_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -223,6 +234,8 @@ fit_multiple_princorrs_SOURCES = fit_multiple_princorrs.cc
 fit_prin_corr_SOURCES = fit_prin_corr.cc
 generate_ensem_SOURCES = generate_ensem.cc
 timeslice_covariance_SOURCES = timeslice_covariance.cc
+fit_corr_finT_SOURCES = fit_corr_finT.cc
+fit_const_SOURCES = fit_const.cc
 
 #
 # The following rule will always try to rebuild libadat.a when you 
@@ -304,6 +317,9 @@ clean-binPROGRAMS:
 fit_Z_const_and_exp$(EXEEXT): $(fit_Z_const_and_exp_OBJECTS) $(fit_Z_const_and_exp_DEPENDENCIES) 
 	@rm -f fit_Z_const_and_exp$(EXEEXT)
 	$(CXXLINK) $(fit_Z_const_and_exp_OBJECTS) $(fit_Z_const_and_exp_LDADD) $(LIBS)
+fit_const$(EXEEXT): $(fit_const_OBJECTS) $(fit_const_DEPENDENCIES) 
+	@rm -f fit_const$(EXEEXT)
+	$(CXXLINK) $(fit_const_OBJECTS) $(fit_const_LDADD) $(LIBS)
 fit_corr_cosh$(EXEEXT): $(fit_corr_cosh_OBJECTS) $(fit_corr_cosh_DEPENDENCIES) 
 	@rm -f fit_corr_cosh$(EXEEXT)
 	$(CXXLINK) $(fit_corr_cosh_OBJECTS) $(fit_corr_cosh_LDADD) $(LIBS)
@@ -316,6 +332,9 @@ fit_corr_exp$(EXEEXT): $(fit_corr_exp_OBJECTS) $(fit_corr_exp_DEPENDENCIES)
 fit_corr_exp_and_const$(EXEEXT): $(fit_corr_exp_and_const_OBJECTS) $(fit_corr_exp_and_const_DEPENDENCIES) 
 	@rm -f fit_corr_exp_and_const$(EXEEXT)
 	$(CXXLINK) $(fit_corr_exp_and_const_OBJECTS) $(fit_corr_exp_and_const_LDADD) $(LIBS)
+fit_corr_finT$(EXEEXT): $(fit_corr_finT_OBJECTS) $(fit_corr_finT_DEPENDENCIES) 
+	@rm -f fit_corr_finT$(EXEEXT)
+	$(CXXLINK) $(fit_corr_finT_OBJECTS) $(fit_corr_finT_LDADD) $(LIBS)
 fit_multiple_princorrs$(EXEEXT): $(fit_multiple_princorrs_OBJECTS) $(fit_multiple_princorrs_DEPENDENCIES) 
 	@rm -f fit_multiple_princorrs$(EXEEXT)
 	$(CXXLINK) $(fit_multiple_princorrs_OBJECTS) $(fit_multiple_princorrs_LDADD) $(LIBS)
@@ -336,10 +355,12 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_Z_const_and_exp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_const.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_cosh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_cosh_and_const.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_exp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_exp_and_const.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_finT.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_multiple_princorrs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_prin_corr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_ensem.Po@am__quote@

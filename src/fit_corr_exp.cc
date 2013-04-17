@@ -67,6 +67,10 @@ int main(int argc, char *argv[]){
   CompareFitsByQN* comp5 = new CompareFitsByQN; Handle<FitComparator> comp5H(comp5);
   dum.insert( make_pair("QN", comp5H) );
   
+  cout << "made the fit comparators" << endl;
+
+
+  cout << "is this doing anything?"<< endl;
 
   //do the fit
   FitCorrelatorExp fitCorr(corrData, dum[fitCrit], cutoff, minTSlices); 

@@ -264,6 +264,10 @@ double ChiSquare::operator()(const vector<double>& pars) const{
     }
   }
 
+  //  for(int i = 0; i < pars.size(); i++){ cout << pars[i] << " , " ; }
+  //cout << endl;
+  //cout << "chisq = " << chisq << endl;
+
   return chisq;
 };
 
@@ -331,17 +335,37 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
   //cout << "in runBinFit, set all the parameter ranges etc...." << endl;
 
+
+  // cout << "machine precision   " << MnMachinePrecision() << endl;
+
   //create the minimiser
   MnMigrad mini(chisquare, upar);
+
+  //  mini.SetPrecision(1.0e-8);
+
+
+  if(!omp_in_parallel()){
+    omp_set_num_threads(1); // minuit will thread the computation of derivatives under the hood - can slow it down
+  // will this bugger up reconfit_svd ???
+  }
+
   //MINIMIZE
   FunctionMinimum min = mini();
   bool fitSuccess = min.IsValid();
 
-  /*  cout << "in runBinFit, ran a fit, was ";
-      if(fitSuccess){cout << "successful";}
-      else{cout << "unsuccessful";}
-      cout << endl;
-   */
+
+
+  
+
+  // DEBUG
+  //  cout << "in runBinFit, ran a fit, was ";
+  //if(fitSuccess){cout << "successful" << endl << min ;}
+  //else{cout << "unsuccessful";}
+  //cout << endl;
+  //*************************************
+
+
+
   //dump the result
   if(bin == -1){
     avgParValues.resize(ff->getNPars());
@@ -383,7 +407,9 @@ vector<bool> JackFit::runJackFit(){
 
   //run over every bin using the avg fit results as the start guesses for the fit
   vector<bool> success;
-  for(int bin = 0; bin < data.getNBins(); bin++){ success.push_back( runBinFit(bin, avgParValues, avgParErrors) );}
+  for(int bin = 0; bin < data.getNBins(); bin++){ 
+    //cout << "bin = " << bin << endl;
+    success.push_back( runBinFit(bin, avgParValues, avgParErrors) );}
   return success;
 }
 

@@ -6,6 +6,7 @@
 
 #include "jackknife_fitter.h"
 #include "ensem_data.h"
+#include "fit_forms.h"
 
 //////////////////////////////////////////////////
 // define some concrete versions of FitFunction
@@ -246,9 +247,36 @@ double CorrTwoCoshAndConst::operator()(const vector<double>& pars, double x) con
     + pars[4] * exp( - pars[3] * double(T / 2) ) * 2 * cosh( pars[3] * ( x - double(T/2) ) );
 };
 
+//************************************
+// TWO PARTICLE FINITE-T FORM
+//************************************
+//   Aforw * exp( -E2*t) + Aback * exp( -E2* (T-t) ) 
+//      + CA*exp(-E1A*T)*exp( (E1A - E1B)*t )
+//      + CB*exp(-E1B*T)*exp( (E1B - E1A)*t )
 
+class CorrFinT : public FitFunction {
+ public:
+ CorrFinT(int T_, double E1A_, double E1B_) : T(T_), E1A(E1A_), E1B(E1B_), FitFunction(5)
+    {
+      setParName(0, "Aforw");
+      setParName(1, "Aback");
+      setParName(2, "CA");
+      setParName(3, "CB");
+      setParName(4, "E2");
+    }
+  inline double operator()(const vector<double>& pars, double x) const;
+  string getFitType() const {return "CorrFinT";}
 
+ private:
+  int T;
+  double E1A, E1B;
+};
 
+double CorrFinT::operator()(const vector<double>& pars, double x) const{
+  //params are stored as {Aforw, Aback, CA, CB, E2}
+
+  return pars[0] * exp( - pars[4] * x ) + pars[1] * exp( - pars[4] * (double(T) - x) )  + pars[2] * exp( - E1A* double(T) ) * exp( (E1A - E1B) * x ) + pars[3] * exp( - E1B* double(T) ) * exp( (E1B - E1A) * x );
+};
 
 
 //********************************************************************
@@ -406,6 +434,7 @@ class FitCorrelatorExpAndConst{
 
 };
 
+
 //**********************************************************
 class FitCorrelatorCoshAndConst{
  public:
@@ -450,6 +479,74 @@ class FitCorrelatorCoshAndConst{
 };
 
 
+
+
+
+//**********************************************************
+class FitCorrelatorFinT{
+ public:
+  FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, double E1B_, 
+		    Handle<FitComparator> fitComp_, double noiseRatioCutoff, int minTSlices);
+  
+  void saveFitPlot(string filename){ofstream out; out.open(filename.c_str());  out << axis_plot;  out.close(); }
+  string getFitPlotString() const {return axis_plot;};
+  string getFitSummary() const {return fit_summary;};
+
+
+  double getChisq() const{ return chisq;};
+  double getNDoF() const{ return nDoF;};
+  string getFitName() const {return best_fit_name;};
+
+
+  EnsemReal Aforw;
+  EnsemReal Aback;
+  EnsemReal CA;
+  EnsemReal CB;
+  EnsemReal E2;
+
+  
+ private:
+  Handle<FitComparator> fitComp;
+  JackFitLog fits;
+
+  int T;
+  double E1A, E1B;
+
+  string fit_summary;
+  string axis_plot;
+  double chisq;
+  double nDoF;
+  string best_fit_name;
+
+
+
+};
+
+//**********************************************************
+// just do a simple fit to a constant over a fixed time range
+class FitConst{
+ public:
+  FitConst(EnsemData data_, int tmin, int tmax);
+  
+  void saveFitPlot(string filename){ofstream out; out.open(filename.c_str());  out << axis_plot;  out.close(); }
+  string getFitPlotString() const {return axis_plot;};
+
+  EnsemReal getConst() const {return constant;};
+
+  double getChisq() const{ return chisq;};
+  double getNDoF() const{ return nDoF;};
+
+ private:
+  int tmin, tmax;
+  JackFitLog fits;
+
+  string axis_plot;
+  double chisq;
+  double nDoF;
+
+  EnsemReal constant;
+
+};
 
 
 

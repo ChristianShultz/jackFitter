@@ -63,9 +63,12 @@ int main(int argc, char *argv[]){
   dum.insert( make_pair("generic", comp4H) );
   CompareFitsByQN* comp5 = new CompareFitsByQN; Handle<FitComparator> comp5H(comp5);
   dum.insert( make_pair("QN", comp5H) );
-  
+
+  //cout << "starting the fit" << endl;
   //do the fit
   FitPrincipalCorrelator fitCorr(corrData, t0, dum[fitCrit], cutoff, minTSlices); 
+
+  //cout << "fit is done" << endl;
 
   //output some business
   //fit summary 
