@@ -27,6 +27,7 @@ struct ThreePointComparatorProps_t
   ADATXML::Array<std::string> extraProps;
   int tlow;
   int thigh; // the fit range
+  int minTSlice; 
 };
 
 std::string toString(const ThreePointComparatorProps_t &);
@@ -307,7 +308,7 @@ struct FitComparatorNoBias : public FitComparatorBiasFunction
   FitComparatorNoBias(const FitComparatorNoBias &o)
     : FitComparatorBiasFunction(o) {}
 
-  std::string biasFunctionNam(void) const {return std::string("noBiasFunction");}
+  std::string biasFunctionName(void) const {return std::string("noBiasFunction");}
 
 };
 

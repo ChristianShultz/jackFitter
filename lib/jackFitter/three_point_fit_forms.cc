@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Fri Feb  1 14:32:50 2013
+ * Last Modified : Tue Apr 23 17:55:29 2013
 
  * Created By : shultz
 
@@ -32,7 +32,7 @@ std::string toString(const ThreePointComparatorProps_t &prop)
   ss << " baseProp = " << prop.baseProp << "   biasProp = " << prop.biasProp << "   extraProps = ";
   for(int i = 0; i < prop.extraProps.size(); ++i)
     ss << prop.extraProps[i] << " ";
-  ss << "   tlow = " << prop.tlow << "   thigh = " << prop.thigh; 
+  ss << "   tlow = " << prop.tlow << "   thigh = " << prop.thigh << "   minTSlice = " << prop.minTSlice; 
   return ss.str();
 }
 
@@ -71,6 +71,7 @@ void read(ADATXML::XMLReader &xml, const std::string &path, ThreePointComparator
   doXMLRead(ptop,"extraProps",prop.extraProps,__PRETTY_FUNCTION__);
   doXMLRead(ptop,"tlow",prop.tlow,__PRETTY_FUNCTION__);
   doXMLRead(ptop,"thigh",prop.thigh,__PRETTY_FUNCTION__); 
+  doXMLRead(ptop,"minTSlice",prop.minTSlice,__PRETTY_FUNCTION__);
 }
 
 // an example of the a bias function
@@ -125,12 +126,11 @@ namespace
     m_map.insert(value_type( "noBiasFunction", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorNoBias())));
     m_map.insert(value_type( "none", ADAT::Handle<FitComparatorBiasFunction>(new FitComparatorNoBias())));
 
-
     type_t::const_iterator it; 
     it = m_map.find(name); 
     if(it != m_map.end())
       return it->second; 
-
+    
     std::cout << __func__ << ": error: " << name << " is unsupported, options were "<< std::endl;
     for(it = m_map.begin(); it != m_map.end(); ++it)
       std::cout << it->first << std::endl;
@@ -227,7 +227,11 @@ ADAT::Handle<FitComparator> constructThreePointFitComparator(const ThreePointCom
 namespace
 {
 
-  std::vector<double> constructBiasParameters(const std::string &fname, double tmax, double tmin, double thigh, double tlow)
+  std::vector<double> constructBiasParameters(const std::string &fname, 
+      double tmax, 
+      double tmin,
+      double thigh, 
+      double tlow)
   {
 
     std::vector<double> biasParameters; 
@@ -251,10 +255,11 @@ namespace
       biasParameters.push_back(midpt);
       biasParameters.push_back(fit_midpt);
       biasParameters.push_back(half);
+      
     }
     else if((fname == std::string("none")) || (fname == std::string("noBiasFunction")))
     {
-      // do nothing.. just don't exit..
+      // nothing     
     }
     else
     {
@@ -267,7 +272,11 @@ namespace
 
 
 
-  std::string makeFancyPlot(const AxisPlot &pt, const FitThreePoint &tp, const std::string &mode,const int tf, const int ti)
+  std::string makeFancyPlot(const AxisPlot &pt,
+      const FitThreePoint &tp,
+      const std::string &mode,
+      const int tf,
+      const int ti)
   {
 
     if((mode != std::string("dExpPC") && (mode != std::string("Constant"))))
@@ -550,7 +559,17 @@ namespace
      */
 
     std::vector<double> x = data.getAllXData();
-    double guess = ENSEM::toDouble(ENSEM::mean(data.getYUsingNearestX(x.at(x.size()/2)))); 
+
+    // can't be const as EnsemData doesn't want a const x...
+    // still this is a one off vector so it shouldn't be harmful
+    std::vector<double>::iterator it;
+    double guess(0.);
+    for(it = x.begin(); it != x.end(); ++it)
+        guess +=  ENSEM::toDouble(ENSEM::mean(data.getYUsingNearestX(*it))); 
+    
+    guess /= double(x.size()); 
+
+    // global average
     tpConst->setDefaultParValue("C",guess); 
 
     // do a loop over all possible fit separations.. this is probably going to be slow
