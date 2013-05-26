@@ -42,7 +42,15 @@ int main(int argc, char *argv[]){
 
   EnsemVectorReal corr; 
 
-  corr = (part == 0) ? real(corr_cmplx) : imag(corr_cmplx) ; 
+  if(part == 0)
+    corr = ENSEM::real(corr_cmplx); 
+  else if (part == 1)
+    corr = ENSEM::imag(corr_cmplx); 
+  else
+  {
+    std::cerr << "booom" << std::endl; 
+    exit(1); 
+  }
 
   //make the EnsemData object
   EnsemVectorReal lambda; lambda.resize(bins); lambda.resizeObs(tmax - tmin + 1);

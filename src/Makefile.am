@@ -20,7 +20,8 @@ LDADD = -ljackFitter @ADAT_LIBS@ @ITPP_LIBS@ @LIBS@
 ##   be built by 'make check' and is not installed.
 #noinst_PROGRAMS = spectrum
 
-bin_PROGRAMS = fit_Z_const_and_exp fit_corr_cosh fit_corr_cosh_and_const fit_corr_exp fit_corr_exp_and_const fit_multiple_princorrs fit_prin_corr generate_ensem timeslice_covariance fit_corr_finT fit_const fit_corr_exp_cmplx
+bin_PROGRAMS = fit_Z_const_and_exp fit_corr_cosh fit_corr_cosh_and_const fit_corr_exp fit_corr_exp_and_const fit_multiple_princorrs \
+							 fit_prin_corr generate_ensem timeslice_covariance fit_corr_finT fit_const fit_corr_exp_cmplx
 
 fit_Z_const_and_exp_SOURCES = fit_Z_const_and_exp.cc
 
@@ -44,7 +45,7 @@ fit_corr_finT_SOURCES = fit_corr_finT.cc
 
 fit_const_SOURCES = fit_const.cc
 
-fit_corr_cmplx_SOURCES = fit_corr_cmplx.cc
+fit_corr_exp_cmplx_SOURCES = fit_corr_exp_cmplx.cc
 
 #
 # The following rule will always try to rebuild libadat.a when you 
