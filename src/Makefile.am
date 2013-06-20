@@ -44,7 +44,7 @@ fit_corr_finT_SOURCES = fit_corr_finT.cc
 
 fit_const_SOURCES = fit_const.cc
 
-fit_corr_cmplx_SOURCES = fit_corr_cmplx.cc
+fit_corr_exp_cmplx_SOURCES = fit_corr_exp_cmplx.cc
 
 #
 # The following rule will always try to rebuild libadat.a when you 
