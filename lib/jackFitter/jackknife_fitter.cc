@@ -768,6 +768,15 @@ std::vector<double> JackFit::getBiasParameters(void) const
 }
 
 
+void JackFit::set_named_ints(const std::vector<std::pair<std::string,int> > &nit)
+{
+  named_ints = nit; 
+}
+
+std::vector<std::pair<std::string,int> > JackFit::get_named_ints(void) const
+{
+  return named_ints; 
+}
 
 //*************************************************************
 // JACKFITLOG
@@ -797,6 +806,25 @@ void JackFitLog::addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const
 {
   JackFit fit(data,ff);
   fit.setBiasParameters(biasParameters);
+  fit.runAvgFit();
+
+  FitDescriptor fitDesc(ff, data.getActiveDataList(), fitname);
+  if(fit.getAvgFitSuccess()){ 
+    keys.push_back(fitDesc);
+    fits.push_back(fit); 
+  } 
+
+}
+
+
+// allow for passing in an extra set of external bias parameters 
+// these get used by the fit comparator
+void JackFitLog::addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters, 
+    const std::vector<std::pair<std::string,int> > &named_ints)
+{
+  JackFit fit(data,ff);
+  fit.setBiasParameters(biasParameters);
+  fit.set_named_ints(named_ints); 
   fit.runAvgFit();
 
   FitDescriptor fitDesc(ff, data.getActiveDataList(), fitname);

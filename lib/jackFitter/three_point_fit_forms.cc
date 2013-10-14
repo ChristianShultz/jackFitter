@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Tue Apr 23 17:55:29 2013
+ * Last Modified : Mon 14 Oct 2013 06:37:42 PM EDT
 
  * Created By : shultz
 
@@ -279,7 +279,7 @@ namespace
       const int ti)
   {
 
-    if((mode != std::string("dExpPC") && (mode != std::string("Constant"))))
+    if((mode != std::string("dExpPC") && (mode != std::string("Constant") && (mode != std::string("symExpPC")) )))
     {
       std::cout << __func__ << ": error: mode " << mode << "not supported" << std::endl;
       __builtin_trap(); 
@@ -485,17 +485,90 @@ namespace
         m_fits.getEnsemData().hideDataAboveX(t_high + 0.1);
         m_fits.getEnsemData().hideDataBelowX(t_low - 0.1); 
 
+        // this class is so stupidly broken -- why is it this hard to add something
+        std::vector<std::pair<std::string,int> > named_ints; 
+        named_ints.push_back(std::pair<std::string,int>("t_low",t_low));
+        named_ints.push_back(std::pair<std::string,int>("t_high",t_high));
+
         std::stringstream ss; 
         ss << "DoubleExpPlusConst: t_low = " << t_low << " t_high = " << t_high; 
         // sanity 2 
 
         if(m_fits.getEnsemData().getNData() >= minTSlice)
-          m_fits.addFit(ss.str(),dExpPC,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low));   
+          m_fits.addFit(ss.str(),dExpPC,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low),named_ints);   
       }
 
     return dExpPC; 
   }
 
+  // do a fit using symm double exp plus const fit function
+  ADAT::Handle<FitFunction> trySymExpPCFit(const int t_f,
+      const int t_i, 
+      const int minTSlice,
+      EnsemData data,
+      ADAT::Handle<FitComparator> &m_fitComp,
+      JackFitLog &m_fits)
+  {
+
+
+    if(minTSlice < 3) 
+    {
+      std::cout << __func__ << " need at least 5 data points to do a fit" << std::endl;
+      exit(1);
+    }
+
+
+    // try the double exp plus const fit 
+    ADAT::Handle<FitFunction> dExpPC (new ThreePointSymmetricExpPlusConst(t_f,t_i));
+
+    dExpPC->setDefaultParValue("C",1.);     // a terrible guess at the form factor 
+    dExpPC->setDefaultParValue("E",0.18); // this is like delta m so around a pion mass in lattice units?
+
+    // guess at the sign by computing the slope -- also avoid contact terms
+    ENSEM::Real xp,xm;
+    double tp , tm; 
+    tp = double(t_f -1);
+    tm = double(t_f - 3); 
+    xp = ENSEM::mean(data.getYUsingNearestX(tp));
+    xm = ENSEM::mean(data.getYUsingNearestX(tm));
+    double sign,slope;
+    slope = ENSEM::toDouble(xp-xm);
+    if(slope> 0)
+      sign = 1.;
+    else
+      sign = -1.;
+
+    dExpPC->setDefaultParValue("A",sign*1.);
+
+
+
+    // do a loop over all possible fit separations.. this is probably going to be slow
+    for(int t_low = t_i + 1; t_low < t_f; ++t_low)
+      for(int t_high = t_f -1; t_high > t_low; --t_high)
+      {
+        // skip the impossible ones
+        if(t_high - t_low < minTSlice)
+          continue;
+
+        m_fits.getEnsemData().showAll();
+        m_fits.getEnsemData().hideDataAboveX(t_high + 0.1);
+        m_fits.getEnsemData().hideDataBelowX(t_low - 0.1); 
+
+        std::stringstream ss; 
+        ss << "DoubleExpPlusConst: t_low = " << t_low << " t_high = " << t_high; 
+        // sanity 2 
+        
+        // this class is so stupidly broken -- why is it this hard to add something
+        std::vector<std::pair<std::string,int> > named_ints; 
+        named_ints.push_back(std::pair<std::string,int>("t_low",t_low));
+        named_ints.push_back(std::pair<std::string,int>("t_high",t_high));
+
+        if(m_fits.getEnsemData().getNData() >= minTSlice)
+          m_fits.addFit(ss.str(),dExpPC,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low),named_ints);   
+      }
+
+    return dExpPC; 
+  }
   struct stupidDerivative
   {
     stupidDerivative(const double xx, const double ff)
@@ -588,8 +661,13 @@ namespace
         ss << "Constant: t_low = " << t_low << " t_high = " << t_high; 
         // sanity 2 
 
+        // this class is so stupidly broken -- why is it this hard to add something
+        std::vector<std::pair<std::string,int> > named_ints; 
+        named_ints.push_back(std::pair<std::string,int>("t_low",t_low));
+        named_ints.push_back(std::pair<std::string,int>("t_high",t_high));
+
         if(m_fits.getEnsemData().getNData() >= minTSlice)
-          m_fits.addFit(ss.str(),tpConst,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low));   
+          m_fits.addFit(ss.str(),tpConst,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low),named_ints);   
       }
 
     return tpConst; 
@@ -606,8 +684,10 @@ namespace
   FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice, const std::string &fit_type) 
 : m_fits(data) , m_fitComp(fitComp)
 {
-  ADAT::Handle<FitFunction> dExpPC,Constant; 
+  ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC; 
 
+  if((fit_type == "symExpPC") || (fit_type == "all"))
+    symExpPC = trySymExpPCFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   if((fit_type == "dExpPC") || (fit_type == "all"))
     dExpPC = trydExpPCFit(t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else if((fit_type == "const") || (fit_type == "all"))
@@ -639,6 +719,8 @@ namespace
     m_nDoF = 1;
     m_best_fit_name = "FAILED";
     m_fit_summary = "FAILED";
+    t_low = t_i; 
+    t_high = t_f; 
     // no plot
   }
   else  if((fit_type == "const") || (fit_type == "all"))
@@ -651,6 +733,32 @@ namespace
       m_chisq = bestFit.getJackChisq();
       m_nDoF = bestFit.getNDoF();
       m_best_fit_name = best.fitname;
+
+      // this gets more frustrating every time i have to look at it
+      {
+        std::vector<std::pair<std::string,int> > named_ints = bestFit.get_named_ints(); 
+        std::vector<std::pair<std::string,int> >::const_iterator it; 
+        bool found = false; 
+        for(it = named_ints.begin(); it != named_ints.end(); ++it)
+          if(it->first == "t_low")
+          {
+            found = true; 
+            t_low = it->second; 
+          }
+        if (! found) 
+          std::cerr << "Warning: something wacky is going on here" << std::endl;
+        found = false;  
+
+        for(it = named_ints.begin(); it != named_ints.end(); ++it)
+          if(it->first == "t_high")
+          {
+            found = true; 
+            t_high = it->second; 
+          }
+        if (! found) 
+          std::cerr << "Warning: something wacky is going on here" << std::endl;
+      }
+
 
       int count = 1; 
       std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
@@ -761,6 +869,70 @@ namespace
       AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
 
       m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("dExpPC"),t_f, t_i);
+
+    }
+  }
+  else if((fit_type == "symExpPC") || (fit_type == "all"))
+  {
+    if (best.ff->getFitType() == symExpPC->getFitType())
+    {
+      m_fit_type = dExpPC->getFitType(); 
+      JackFit& bestFit = m_fits.getFit(best);
+      m_FF = bestFit.getJackFitParValue("C");
+      m_A1 = bestFit.getJackFitParValue("A");
+      m_E1 = bestFit.getJackFitParValue("E");
+
+      m_chisq = bestFit.getJackChisq();
+      m_nDoF = bestFit.getNDoF();
+      m_best_fit_name = best.fitname;
+
+      int count = 1; 
+      std::map<double,FitDescriptor> list = m_fits.getFitList(*m_fitComp);
+      std::stringstream ss; 
+      ss << "                                           | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+
+      for( std::map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
+      {
+        JackFit& thisFit = m_fits.getFit(p->second);
+        double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
+        double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
+        ss << setw(35) <<(p->second).fitname << "|";
+        ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
+        ss << setw(12) << fixed << setprecision(3) << Q <<"|";
+        ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+
+        if(count == rank)
+        {
+          ss << "*";
+        }
+        else
+        {
+          ss << " ";
+        }
+        ss << " FF=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("C") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("C");
+
+        if( ((p->second).ff).operator->() == symExpPC.operator->() )
+        {
+          ss << ", E=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("E") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("E");
+          ss << ", A=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A");
+        }
+        ss << endl;count++;
+      } 
+
+
+      m_fit_summary = ss.str();
+
+      std::stringstream lab;
+      lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+      lab << "; FF=" << fixed << setprecision(4) << toDouble(mean(m_FF)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(m_FF)));
+      std::stringstream plot;
+      plot << bestFit.makeJackFitPlotAxis(t_i - 2, t_f + 2, lab.str());
+
+      m_axis_plot = plot.str();
+
+      AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
+
+      m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,std::string("symExpPC"),t_f, t_i);
 
     }
   }

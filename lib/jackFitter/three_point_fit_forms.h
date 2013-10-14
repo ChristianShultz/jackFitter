@@ -91,7 +91,7 @@ struct ThreePointDoubleExpPlusConst : public FitFunction
 
 struct ThreePointSymmetricExpPlusConst : public FitFunction
 {
-  ThreePointDoubleExpPlusConst(const double tf, const double ti)
+  ThreePointSymmetricExpPlusConst(const double tf, const double ti)
     : FitFunction(5) , m_tf(tf) , m_ti(ti)
   { 
     setParName(0,"C");
@@ -465,6 +465,11 @@ struct FitThreePoint
   double getChisq(void) const {return m_chisq;}
   double getNDoF(void) const {return m_nDoF;}
 
+  int tlow(void) {return t_low;}
+  int thigh(void) {return t_high;}
+
+  int t_low, t_high;
+  
   // leaving this public
   ADAT::Handle<FitComparator> m_fitComp;
   JackFitLog m_fits;

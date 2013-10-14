@@ -203,6 +203,8 @@ class JackFit
     // in the Fit comparator routines
     void setBiasParameters(const std::vector<double> &pars);
     std::vector<double> getBiasParameters(void) const;
+    void set_named_ints(const std::vector<std::pair<std::string,int> > &pars); 
+    std::vector<std::pair<std::string,int> > get_named_ints(void) const;  
 
   private:
 
@@ -228,7 +230,7 @@ class JackFit
     // in the Fit comparator routines
     bool m_have_bias_pars;
     std::vector<double> m_bias_parameters;
-
+    std::vector<std::pair<std::string,int> > named_ints;  
 };
 
 
@@ -304,6 +306,9 @@ class JackFitLog{
 
     // allow for passing in an extra set of external bias parameters 
     void addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters);
+    
+    void addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters,
+        const std::vector<std::pair<std::string,int> > &named_ints);
 
     void removeFit(FitDescriptor fitDesc); //removes a fit from the map
 
