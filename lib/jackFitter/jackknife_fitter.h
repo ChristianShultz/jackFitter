@@ -206,6 +206,9 @@ class JackFit
     void set_named_ints(const std::vector<std::pair<std::string,int> > &pars); 
     std::vector<std::pair<std::string,int> > get_named_ints(void) const;  
 
+    // backdoor 
+    ADAT::Handle<FitFunction> get_fit_func(void) {return ff;}
+
   private:
 
     EnsemData data;

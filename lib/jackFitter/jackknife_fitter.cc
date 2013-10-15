@@ -346,7 +346,7 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
   if(!omp_in_parallel()){
     omp_set_num_threads(1); // minuit will thread the computation of derivatives under the hood - can slow it down
-  // will this bugger up reconfit_svd ???
+    // will this bugger up reconfit_svd ???
   }
 
   //MINIMIZE
@@ -355,7 +355,7 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
 
 
-  
+
 
   // DEBUG
   //  cout << "in runBinFit, ran a fit, was ";
@@ -897,7 +897,8 @@ FitDescriptor JackFitLog::getBestFit(FitComparator& fitComp){
   return p->second;
 }
 
-FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
+FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
+{
 
   map<double, FitDescriptor> list;
   list = getFitList(fitComp);
@@ -914,8 +915,10 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank){
       FitDescriptor thisFit = p->second;
       JackFit& bestFit = getFit(thisFit);
       bestFit.runJackFit();
-      if(bestFit.getNFailedFits() > 0){} //cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;} //write a log message ?
-      else if(bestFit.getJackChisq() > 0){success = true;} //write a log message?
+      if(bestFit.getNFailedFits() > 0)
+      {} //cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;} //write a log message ?
+      else if(bestFit.getJackChisq() > 0)
+      {success = true;} //write a log message?
       //would like to also check that the jack fit is "compatible" with the average fit we started with ?
 
   }

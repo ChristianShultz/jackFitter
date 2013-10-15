@@ -112,7 +112,53 @@ struct ThreePointSymmetricExpPlusConst : public FitFunction
 };
 
 
+// A*exp (-E(t-ti) )  + C -- C is the formfactor
 
+struct ThreePointLeftExpPlusConst : public FitFunction
+{
+  ThreePointLeftExpPlusConst(const double tf, const double ti)
+    : FitFunction(5) , m_tf(tf) , m_ti(ti)
+  { 
+    setParName(0,"C");
+    setParName(1,"A");
+    setParName(2,"E");
+  }
+
+  std::string getFitType(void) const {return std::string("ThreePointLeftExpPlusConst");}
+
+  double operator()(const vector<double> &pars, double t) const
+  {
+    return pars[0] + pars[1]*exp(-pars[2]*(t - m_ti)) ;
+  }
+
+  double m_tf;
+  double m_ti;
+
+};
+
+// A*exp (-E(tf-t) )  + C -- C is the formfactor
+
+struct ThreePointRightExpPlusConst : public FitFunction
+{
+  ThreePointRightExpPlusConst(const double tf, const double ti)
+    : FitFunction(5) , m_tf(tf) , m_ti(ti)
+  { 
+    setParName(0,"C");
+    setParName(1,"A");
+    setParName(2,"E");
+  }
+
+  std::string getFitType(void) const {return std::string("ThreePointRightExpPlusConst");}
+
+  double operator()(const vector<double> &pars, double t) const
+  {
+    return pars[0] + pars[1]*exp(-pars[2]*(m_tf - t)) ;
+  }
+
+  double m_tf;
+  double m_ti;
+
+};
 
 ////////////////////////////////////////////////////////////////
 //////////////////     COMPARATORS   ///////////////////////////
