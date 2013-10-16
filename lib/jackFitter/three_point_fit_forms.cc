@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Tue 15 Oct 2013 05:52:39 PM EDT
+ * Last Modified : Wed 16 Oct 2013 06:22:54 PM EDT
 
  * Created By : shultz
 
@@ -298,17 +298,17 @@ namespace
       const int ti)
   {
 
-/*    if((mode != std::string("dExpPC") 
+    /*    if((mode != std::string("dExpPC") 
           && (mode != std::string("Constant") 
-            && (mode != std::string("symExpPC"))
-            && (mode != std::string("leftExpPC"))
-            && (mode != std::string("rightExpPC"))
-            )))
-    {
-      std::cout << __func__ << ": error: mode " << mode << "not supported" << std::endl;
-      __builtin_trap(); 
-    }
-*/ 
+          && (mode != std::string("symExpPC"))
+          && (mode != std::string("leftExpPC"))
+          && (mode != std::string("rightExpPC"))
+          )))
+          {
+          std::cout << __func__ << ": error: mode " << mode << "not supported" << std::endl;
+          __builtin_trap(); 
+          }
+          */ 
 
     // A1exp(-E1(tf-t)) + A2exp(-E2(t-ti)) + C -- C is the formfactor
     AxisPlot plot(pt); 
@@ -511,41 +511,45 @@ namespace
 
         ADAT::Handle<FitFunction> func = function_factory(s,t_f,t_i);  
 
+        double tmp,tmp2; 
         double C, El, Eh, Al, Ah;
-        C = 1.;
-        El = 0.18;
-        Eh = 0.18;  
 
+        ENSEM::Real eC, eEl, eEh, eAl, eAh, et; 
 
-        // guess at the sign by computing the slope -- also avoid contact terms
-        ENSEM::Real xp,xm;
-        double tp , tm; 
-        tp = double(t_f -1);
-        tm = double(t_f - 3); 
-        xp = ENSEM::mean(data.getYUsingNearestX(tp));
-        xm = ENSEM::mean(data.getYUsingNearestX(tm));
-        double sign,slope;
-        slope = ENSEM::toDouble(xp-xm);
-        if(slope> 0)
-          sign = 1.;
-        else
-          sign = -1.;
+        // pick C as the midpoint
+        tmp = double(t_f + t_i)/2.; 
+        eC = ENSEM::mean(data.getYUsingNearestX(tmp)); 
 
-        Ah = sign * 1.; 
+        // log of derivative to get NEGATIVE mass, 
+        // compute the slope to get sign of amplitude
+        tmp = t_i + 1.;
+        tmp2 = tmp + 1; 
 
+        eEl = ENSEM::mean( ENSEM::log ( data.getYUsingNearestX(tmp) / data.getYUsingNearestX(tmp2) ) ) ; 
+        et = ENSEM::Real(tmp);
+        eAl = ENSEM::mean( data.getYUsingNearestX(tmp) / ENSEM::exp( eEl * et ) );  
 
-        // guess at the sign by computing the slope -- also avoid contact terms
-        tp = double(t_i + 3);
-        tm = double(t_i + 1);
-        xp = ENSEM::mean(data.getYUsingNearestX(tp));
-        xm = ENSEM::mean(data.getYUsingNearestX(tm));
-        slope = ENSEM::toDouble(xp-xm);
-        if(slope> 0)
-          sign = -1.;
-        else
-          sign = 1.;
+        // finite difference slope
+        if (  ENSEM::toDouble( ENSEM::mean( data.getYUsingNearestX(tmp) - data.getYUsingNearestX(tmp2) ) ) < 0 ) 
+          eAl = eAl * ENSEM::Real(-1.);
 
-        Al = sign *1.; 
+        // same but sign flip 
+        tmp = t_f -1; 
+        tmp2 = tmp - 1; 
+        eEh = ENSEM::mean( ENSEM::log ( data.getYUsingNearestX(tmp) / data.getYUsingNearestX(tmp2) ) ) ; 
+        et = ENSEM::Real(t_f - tmp); 
+        eAh = ENSEM::mean( data.getYUsingNearestX(tmp) / ENSEM::exp( eEh * et ) ); 
+
+        // finite difference slope
+        if (  ENSEM::toDouble( ENSEM::mean( data.getYUsingNearestX(tmp) - data.getYUsingNearestX(tmp2) ) ) < 0 ) 
+          eAh = eAh * ENSEM::Real(-1.);
+
+        // flip the sign of the mass terms here
+        C = ENSEM::toDouble(eC); 
+        El = -ENSEM::toDouble(eEl); 
+        Eh = -ENSEM::toDouble(eEh); 
+        Al = ENSEM::toDouble(eAl); 
+        Ah = ENSEM::toDouble(eAh);  
 
         if( func->getFitType() == "ThreePointConstant")
         {
@@ -583,6 +587,11 @@ namespace
           exit (1); 
         }  
 
+        /*   
+             std::cout << __PRETTY_FUNCTION__ << __FILE__ << __LINE__ << std::endl; 
+             std::cout << "init " << func->getFitType() << " C = " << C << " Al = " 
+             << Al << " Ah = " << Ah << " El = " << El << " Eh = " << Eh << std::endl; */
+
         return func; 
       }
 
@@ -599,6 +608,7 @@ namespace
           JackFitLog &m_fits, 
           EnsemData &data ) 
       { 
+
         if ( minTSlice < func->getNPars() ) 
         {
           std::cerr << __PRETTY_FUNCTION__ << ": need at least " << func->getNPars() << " to do a fit" << std::endl; 
@@ -607,12 +617,13 @@ namespace
 
 
         // do a loop over all possible fit separations.. this is probably going to be slow
-        for(int t_low = t_i + 1; t_low < t_f; ++t_low)
-          for(int t_high = t_f -1; t_high > t_low; --t_high)
+        for(int t_low = t_i; t_low < t_f; ++t_low)
+          for(int t_high = t_f; t_high > t_low; --t_high)
           {
             // skip the impossible ones
             if(t_high - t_low < minTSlice)
               continue;
+
 
             m_fits.getEnsemData().showAll();
             m_fits.getEnsemData().hideDataAboveX(t_high + 0.1);
@@ -627,6 +638,7 @@ namespace
             ss << func->getFitType() << ": t_low = " << t_low << " t_high = " << t_high; 
             // sanity 2 
 
+            // effective NDoF
             if(m_fits.getEnsemData().getNData() >= minTSlice)
               m_fits.addFit(ss.str(),func,constructBiasParameters(m_fitComp->biasFunctionName(),t_f, t_i, t_high,t_low),named_ints);   
           }
@@ -638,6 +650,8 @@ namespace
     // do a fit
     ADAT::Handle<FitFunction>
       tryThreePointFit( const std::string &s,
+          const int tsnk, 
+          const int tsrc, 
           const int t_f,
           const int t_i, 
           const int minTSlice,
@@ -645,7 +659,7 @@ namespace
           ADAT::Handle<FitComparator> &m_fitComp,
           JackFitLog &m_fits)
       {
-        ADAT::Handle<FitFunction> func = init_three_point_fit_function(s, data,  t_f,  t_i);
+        ADAT::Handle<FitFunction> func = init_three_point_fit_function(s, data,  tsnk,  tsrc);
         return loopFits(func,m_fitComp,t_i,t_f,minTSlice,m_fits,data); 
       }
 
@@ -711,21 +725,29 @@ namespace
 
 //////////////////////////////////////////////////////////////////////
 //
-  FitThreePoint::FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice, const std::string &fit_type) 
+FitThreePoint::FitThreePoint(EnsemData data,
+    const int tsnk, 
+    const int tsrc,
+    const int t_f, 
+    const int t_i,
+    ADAT::Handle<FitComparator> fitComp, 
+    const int minTSlice,
+    const std::string &fit_type) 
 : m_fits(data) , m_fitComp(fitComp)
 {
+
   ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC,leftExpPC,rightExpPC; 
 
   if((fit_type == "symExpPC") || (fit_type == "all"))
-    symExpPC = tryThreePointFit("symExpPC",t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    symExpPC = tryThreePointFit("symExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else if((fit_type == "leftExpPC") || (fit_type == "all"))
-    leftExpPC = tryThreePointFit("leftExpPC",t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    leftExpPC = tryThreePointFit("leftExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else if((fit_type == "rightExpPC") || (fit_type == "all"))
-    rightExpPC = tryThreePointFit("rightExpPC",t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    rightExpPC = tryThreePointFit("rightExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else if((fit_type == "dExpPC") || (fit_type == "all"))
-    dExpPC = tryThreePointFit("dExpPC",t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    dExpPC = tryThreePointFit("dExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else if((fit_type == "const") || (fit_type == "all"))
-    Constant = tryThreePointFit("const",t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    Constant = tryThreePointFit("const",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
   else
   {
     std::cerr << __func__ << ": unknown fit type " << fit_type 

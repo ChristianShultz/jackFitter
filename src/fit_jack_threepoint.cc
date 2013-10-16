@@ -6,7 +6,7 @@
 
  * Creation Date : 01-02-2013
 
- * Last Modified : Mon Feb  4 10:30:02 2013
+ * Last Modified : Wed 16 Oct 2013 06:27:29 PM EDT
 
  * Created By : shultz
 
@@ -26,12 +26,13 @@
 #include <vector>
 
 
+
 void doUsage(const int argc, char * argv[])
 { 
-  if(argc != 8)
+  if(argc != 11)
   {
-    std::cerr << "error: usage: " << argv[0] << " <file.jack> <svCutoff> <minTSlice> <fit_type> " 
-      << "<fitComparator> <tlow> <thigh> " << std::endl;
+    std::cerr << "error: usage: " << argv[0] << " <file.jack> <0-real , 1-imag> <svCutoff> <minTSlice> <fit_type> " 
+      << "<fitComparator> <tlow> <thigh> <tsrc> <tsnk>" << std::endl;
     exit(2113); 
   }
 }
@@ -39,22 +40,35 @@ void doUsage(const int argc, char * argv[])
 
 int main(int argc , char * argv[])
 {
-  
+  doUsage(argc,argv); 
+
   std::string dat; {std::istringstream val(argv[1]); val >> dat;}
-  double svCutoff; {std::istringstream val(argv[2]); val >> svCutoff;}
-  int minTSlice; {std::istringstream val(argv[3]); val >> minTSlice;}
+  int isrl; {std::istringstream val(argv[2]); val >> isrl;}
+  double svCutoff; {std::istringstream val(argv[3]); val >> svCutoff;}
+  int minTSlice; {std::istringstream val(argv[4]); val >> minTSlice;}
 
   ThreePointComparatorProps_t fitProps;
-  {std::istringstream val(argv[4]); val >> fitProps.fit_type;}
-  {std::istringstream val(argv[5]); val >> fitProps.baseProp;}
+  {std::istringstream val(argv[5]); val >> fitProps.fit_type;}
+  {std::istringstream val(argv[6]); val >> fitProps.baseProp;}
   fitProps.biasProp = std::string("noBiasFunction"); 
-  {std::istringstream val(argv[6]); val >> fitProps.tlow;}
-  {std::istringstream val(argv[7]); val >> fitProps.thigh;}
+  {std::istringstream val(argv[7]); val >> fitProps.tlow;}
+  {std::istringstream val(argv[8]); val >> fitProps.thigh;}
+  int tsrc, tsnk;
+  {std::istringstream val(argv[9]); val >> tsrc;}
+  {std::istringstream val(argv[10]); val >> tsnk;}
 
 
-  // get data 
+  // get data
+  //
+  ENSEM::EnsemVectorComplex corr2;  
+  ENSEM::read(dat,corr2);
   ENSEM::EnsemVectorReal corr;
-  ENSEM::read(dat,corr);
+
+  if ( isrl == 0 ) 
+    corr = ENSEM::real(corr2) ; 
+  else
+    corr = ENSEM::real(corr2) ; 
+
   std::cout << "read file " << dat << std::endl;
   int nb = peekObs(corr,0).size();
   std::cout << "bins = " << nb << std::endl;
@@ -69,11 +83,18 @@ int main(int argc , char * argv[])
 
   ADAT::Handle<FitComparator> fitComp = constructThreePointFitComparator(fitProps);
 
-  FitThreePoint fit(foobar, fitProps.thigh, fitProps.tlow, fitComp, minTSlice, fitProps.fit_type);
+  FitThreePoint fit(foobar, tsnk, tsrc, fitProps.thigh,fitProps.tlow, fitComp, minTSlice, fitProps.fit_type);
 
-  
+  std::cout << fit.getFitSummary() << std::endl; 
 
+  // save plots
+  //
+  fit.saveFitPlot( dat + std::string(".fit.ax") ) ; 
 
+  std::string grrr = dat + std::string(".cfit.ax"); 
+  std::ofstream out ( grrr.c_str() ) ; 
+  out << fit.getFitPlotStringWithComponents(); 
+  out.close();  
 
   return 0; 
 }

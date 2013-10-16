@@ -38,7 +38,7 @@ bin_PROGRAMS = fit_Z_const_and_exp$(EXEEXT) fit_corr_cosh$(EXEEXT) \
 	fit_multiple_princorrs$(EXEEXT) fit_prin_corr$(EXEEXT) \
 	generate_ensem$(EXEEXT) timeslice_covariance$(EXEEXT) \
 	fit_corr_finT$(EXEEXT) fit_const$(EXEEXT) \
-	fit_corr_exp_cmplx$(EXEEXT)
+	fit_corr_exp_cmplx$(EXEEXT) fit_jack_threepoint$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -85,6 +85,10 @@ am_fit_corr_finT_OBJECTS = fit_corr_finT.$(OBJEXT)
 fit_corr_finT_OBJECTS = $(am_fit_corr_finT_OBJECTS)
 fit_corr_finT_LDADD = $(LDADD)
 fit_corr_finT_DEPENDENCIES =
+am_fit_jack_threepoint_OBJECTS = fit_jack_threepoint.$(OBJEXT)
+fit_jack_threepoint_OBJECTS = $(am_fit_jack_threepoint_OBJECTS)
+fit_jack_threepoint_LDADD = $(LDADD)
+fit_jack_threepoint_DEPENDENCIES =
 am_fit_multiple_princorrs_OBJECTS = fit_multiple_princorrs.$(OBJEXT)
 fit_multiple_princorrs_OBJECTS = $(am_fit_multiple_princorrs_OBJECTS)
 fit_multiple_princorrs_LDADD = $(LDADD)
@@ -114,12 +118,14 @@ SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_const_SOURCES) \
 	$(fit_corr_cosh_SOURCES) $(fit_corr_cosh_and_const_SOURCES) \
 	$(fit_corr_exp_SOURCES) $(fit_corr_exp_and_const_SOURCES) \
 	$(fit_corr_exp_cmplx_SOURCES) $(fit_corr_finT_SOURCES) \
+	$(fit_jack_threepoint_SOURCES) \
 	$(fit_multiple_princorrs_SOURCES) $(fit_prin_corr_SOURCES) \
 	$(generate_ensem_SOURCES) $(timeslice_covariance_SOURCES)
 DIST_SOURCES = $(fit_Z_const_and_exp_SOURCES) $(fit_const_SOURCES) \
 	$(fit_corr_cosh_SOURCES) $(fit_corr_cosh_and_const_SOURCES) \
 	$(fit_corr_exp_SOURCES) $(fit_corr_exp_and_const_SOURCES) \
 	$(fit_corr_exp_cmplx_SOURCES) $(fit_corr_finT_SOURCES) \
+	$(fit_jack_threepoint_SOURCES) \
 	$(fit_multiple_princorrs_SOURCES) $(fit_prin_corr_SOURCES) \
 	$(generate_ensem_SOURCES) $(timeslice_covariance_SOURCES)
 ETAGS = etags
@@ -242,6 +248,7 @@ timeslice_covariance_SOURCES = timeslice_covariance.cc
 fit_corr_finT_SOURCES = fit_corr_finT.cc
 fit_const_SOURCES = fit_const.cc
 fit_corr_exp_cmplx_SOURCES = fit_corr_exp_cmplx.cc
+fit_jack_threepoint_SOURCES = fit_jack_threepoint.cc
 
 #
 # The following rule will always try to rebuild libadat.a when you 
@@ -344,6 +351,9 @@ fit_corr_exp_cmplx$(EXEEXT): $(fit_corr_exp_cmplx_OBJECTS) $(fit_corr_exp_cmplx_
 fit_corr_finT$(EXEEXT): $(fit_corr_finT_OBJECTS) $(fit_corr_finT_DEPENDENCIES) 
 	@rm -f fit_corr_finT$(EXEEXT)
 	$(CXXLINK) $(fit_corr_finT_OBJECTS) $(fit_corr_finT_LDADD) $(LIBS)
+fit_jack_threepoint$(EXEEXT): $(fit_jack_threepoint_OBJECTS) $(fit_jack_threepoint_DEPENDENCIES) 
+	@rm -f fit_jack_threepoint$(EXEEXT)
+	$(CXXLINK) $(fit_jack_threepoint_OBJECTS) $(fit_jack_threepoint_LDADD) $(LIBS)
 fit_multiple_princorrs$(EXEEXT): $(fit_multiple_princorrs_OBJECTS) $(fit_multiple_princorrs_DEPENDENCIES) 
 	@rm -f fit_multiple_princorrs$(EXEEXT)
 	$(CXXLINK) $(fit_multiple_princorrs_OBJECTS) $(fit_multiple_princorrs_LDADD) $(LIBS)
@@ -371,6 +381,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_exp_and_const.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_exp_cmplx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_corr_finT.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_jack_threepoint.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_multiple_princorrs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fit_prin_corr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_ensem.Po@am__quote@

@@ -92,7 +92,7 @@ struct ThreePointDoubleExpPlusConst : public FitFunction
 struct ThreePointSymmetricExpPlusConst : public FitFunction
 {
   ThreePointSymmetricExpPlusConst(const double tf, const double ti)
-    : FitFunction(5) , m_tf(tf) , m_ti(ti)
+    : FitFunction(3) , m_tf(tf) , m_ti(ti)
   { 
     setParName(0,"C");
     setParName(1,"A");
@@ -117,7 +117,7 @@ struct ThreePointSymmetricExpPlusConst : public FitFunction
 struct ThreePointLeftExpPlusConst : public FitFunction
 {
   ThreePointLeftExpPlusConst(const double tf, const double ti)
-    : FitFunction(5) , m_tf(tf) , m_ti(ti)
+    : FitFunction(3) , m_tf(tf) , m_ti(ti)
   { 
     setParName(0,"C");
     setParName(1,"A");
@@ -141,7 +141,7 @@ struct ThreePointLeftExpPlusConst : public FitFunction
 struct ThreePointRightExpPlusConst : public FitFunction
 {
   ThreePointRightExpPlusConst(const double tf, const double ti)
-    : FitFunction(5) , m_tf(tf) , m_ti(ti)
+    : FitFunction(3) , m_tf(tf) , m_ti(ti)
   { 
     setParName(0,"C");
     setParName(1,"A");
@@ -485,7 +485,14 @@ struct FitThreePoint
 {
 
   // constructor
-  FitThreePoint(EnsemData data, int t_f, int t_i, ADAT::Handle<FitComparator> fitComp, int minTSlice, const std::string &fit_type);
+  FitThreePoint(EnsemData data, 
+      const int tsnk,
+      const int tsrc, 
+      const int t_f,
+      const int t_i,
+      ADAT::Handle<FitComparator> fitComp,
+      const int minTSlice, 
+      const std::string &fit_type);
 
   // the fit
   void saveFitPlot(const std::string &filename) const;
