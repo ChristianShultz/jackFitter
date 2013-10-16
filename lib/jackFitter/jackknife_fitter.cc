@@ -906,32 +906,42 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
   map<double, FitDescriptor>::const_iterator p = list.end();
   bool success = false;
 
+  // CJS -- pretty sure this works on the sorting algorithm built
+  // into the stl map and may break if stl changes -- arguably stupid
   if(list.begin() != list.end())
   {
-    while((!success)){
+    while((!success))
+    {
       if(p == list.begin())
         break;
       p--;
       FitDescriptor thisFit = p->second;
       JackFit& bestFit = getFit(thisFit);
       bestFit.runJackFit();
+
       if(bestFit.getNFailedFits() > 0)
-      {} //cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;} //write a log message ?
+      {
+        //write a log message ?
+        cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;
+      }
       else if(bestFit.getJackChisq() > 0)
-      {success = true;} //write a log message?
-      //would like to also check that the jack fit is "compatible" with the average fit we started with ?
-
+      {
+        success = true;
+      } //write a log message?
+    }
   }
-}
-// THIS IS INSANE!!! 
-if(success){ return p->second;}
-else{ 
-  cerr << "found no acceptable jackknife fits" << endl; 
-  FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
-  fake.fitname = "FAILED";
-  return fake;
-} 
-
+  // THIS IS INSANE!!! 
+  if(success)
+  {
+    return p->second;
+  }
+  else
+  { 
+    cerr << "found no acceptable jackknife fits" << endl; 
+    FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
+    fake.fitname = "FAILED";
+    return fake;
+  } 
 }
 
 
