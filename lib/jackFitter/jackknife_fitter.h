@@ -121,6 +121,17 @@ class FitFunction{ //THIS IS A BASE CLASS
     vector<bool> parLowerLimited;
 };
 
+//  CJS -- invent a failure class and create on the fly to get rid of 
+//  the annoying segfault failure errors 
+struct FitFunctionFailure 
+: public FitFunction 
+{
+  FitFunctionFailure(void) : FitFunction(0) {}
+
+  inline double operator()(const std::vector<double> &, double x) const {return -1.;}
+  std::string getFitType(void) const {return std::string("FAILURE");}
+};
+
 //*******************************************************************
 //chisquare class for Minuit
 //*******************************************************************

@@ -938,9 +938,12 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
   else
   { 
     cerr << "found no acceptable jackknife fits" << endl; 
-    FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
-    fake.fitname = "FAILED";
-    return fake;
+    // this can seg fault since it is stupid 
+    // FitDescriptor fake = (list.begin())->second; //fake - assumes one entry at least
+    //
+    ADAT::Handle<FitFunction> fail(new FitFunctionFailure()); 
+    FitDescriptor failure (fail, std::vector<bool>(), std::string("FAILED")); 
+    return failure; 
   } 
 }
 
