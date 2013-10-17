@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Wed 16 Oct 2013 06:22:54 PM EDT
+ * Last Modified : Thu 17 Oct 2013 02:17:04 PM EDT
 
  * Created By : shultz
 
@@ -298,18 +298,6 @@ namespace
       const int ti)
   {
 
-    /*    if((mode != std::string("dExpPC") 
-          && (mode != std::string("Constant") 
-          && (mode != std::string("symExpPC"))
-          && (mode != std::string("leftExpPC"))
-          && (mode != std::string("rightExpPC"))
-          )))
-          {
-          std::cout << __func__ << ": error: mode " << mode << "not supported" << std::endl;
-          __builtin_trap(); 
-          }
-          */ 
-
     // A1exp(-E1(tf-t)) + A2exp(-E2(t-ti)) + C -- C is the formfactor
     AxisPlot plot(pt); 
     ENSEM::EnsemReal C, A1,A2,E1,E2,dum; 
@@ -329,13 +317,16 @@ namespace
 
     std::vector<double> m,mp,mm, time; 
     double min, max, mean,var, tmp;
+    min = tp.dlow; 
+    max = tp.dhigh; 
 
-    // add the form factor TIMES 0.8 for offset 
-    mean = ENSEM::toDouble(ENSEM::mean(C)); 
-    mean *= 0.8;
-    var = ENSEM::toDouble(ENSEM::variance(C)); 
-    min = mean/0.8 - var; 
-    max = mean/0.8 + var;
+    double off = 1.;
+    dC += off; 
+    // add the form factor PLUS CONST for offset 
+    mean = ENSEM::toDouble(ENSEM::mean(C)) + off; 
+    var = sqrt( ENSEM::toDouble(ENSEM::variance(C)) ); 
+    min = std::min(min,mean - var); 
+    max = std::max(max,mean + var);
     for(int t = 0; t < tf - ti; ++t)
     {
       time.push_back(t+ti); 
@@ -358,12 +349,12 @@ namespace
     mp.clear();
 
 
-    // add the sink exp PLUS 0.8 * FORM FACTOR SO IT LAYS CLOSE TO DATA 
+    // add the sink exp PLUS  FORM FACTOR SO IT LAYS CLOSE TO DATA 
     for(int t = ti; t <= tf; ++t)
     {
       dum = A1*ENSEM::exp(-E1*ENSEM::Real(double(tf-t)));
-      mean = ENSEM::toDouble(ENSEM::mean(dum)) + 0.8*dC;
-      var = ENSEM::toDouble(ENSEM::variance(dum));
+      mean = ENSEM::toDouble(ENSEM::mean(dum)) + dC;
+      var = sqrt(ENSEM::toDouble(ENSEM::variance(dum)));
       m.push_back(mean);
       mm.push_back(mean - var);
       mp.push_back(mean + var);
@@ -374,8 +365,8 @@ namespace
     plot.addLineData(time,mp,4);
 
 
-    // these things actually sum so keep track of absolute ranges
-    std::transform(mp.begin(),mp.end(),mp.begin(),std::bind1st(std::plus<double>(),max - 0.8*dC)); 
+  //  // these things actually sum so keep track of absolute ranges
+  //  std::transform(mp.begin(),mp.end(),mp.begin(),std::bind1st(std::plus<double>(),max - dC)); 
 
     tmp = *std::max_element(mp.begin(),mp.end());
     max = std::max(max,tmp);
@@ -386,12 +377,12 @@ namespace
     mm.clear();
     mp.clear();
 
-    // add the source exp PLUS 0.8 * FORM FACTOR SO IT LAYS CLOSE TO DATA 
+    // add the source exp PLUS  FORM FACTOR SO IT LAYS CLOSE TO DATA 
     for(int t = ti; t <= tf; ++t)
     {
       dum = A2*ENSEM::exp(-E2*ENSEM::Real(t-ti));
-      mean = ENSEM::toDouble(ENSEM::mean(dum)) + 0.8*dC;
-      var = ENSEM::toDouble(ENSEM::variance(dum));
+      mean = ENSEM::toDouble(ENSEM::mean(dum)) +dC;
+      var = sqrt(ENSEM::toDouble(ENSEM::variance(dum)));
       m.push_back(mean);
       mm.push_back(mean -var);
       mp.push_back(mean + var);
@@ -401,8 +392,8 @@ namespace
     plot.addLineData(time,mm,5);
     plot.addLineData(time,mp,5);
 
-    // these things actually sum so keep track of absolute ranges
-    std::transform(mp.begin(),mp.end(),mp.begin(),std::bind1st(std::plus<double>(),max -0.8*dC)); 
+    // // these things actually sum so keep track of absolute ranges
+    // std::transform(mp.begin(),mp.end(),mp.begin(),std::bind1st(std::plus<double>(),max -0.8*dC)); 
 
 
     tmp = *std::max_element(mp.begin(),mp.end());
@@ -410,13 +401,13 @@ namespace
     tmp = *std::min_element(mm.begin(),mm.end());
     min = std::min(min,tmp);
 
-
-    plot.setYRange(min,max);
+    plot.setYRange(min - 0.05 * fabs(min) ,max + 0.05 * fabs(max));
     plot.setXRange(ti - 2, tf + 7);
 
 
     double height = max - min;
     double unit = height/5.;
+
 
     std::stringstream lab;
     lab << "FF = " << std::setprecision(4) << dC;
@@ -735,6 +726,15 @@ FitThreePoint::FitThreePoint(EnsemData data,
     const std::string &fit_type) 
 : m_fits(data) , m_fitComp(fitComp)
 {
+
+  double stmp,si = t_i; 
+  dlow = ENSEM::toDouble( ENSEM::mean( data.getYUsingNearestX(si) ) ); 
+  for(si = t_i; si < t_f; ++si)
+  {
+    stmp = ENSEM::toDouble( ENSEM::mean( data.getYUsingNearestX(si) ) ); 
+    dlow = std::min(dlow,stmp); 
+    dhigh = std::max(dhigh,stmp); 
+  }
 
   ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC,leftExpPC,rightExpPC; 
 

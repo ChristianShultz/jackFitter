@@ -486,12 +486,12 @@ struct FitThreePoint
 
   // constructor
   FitThreePoint(EnsemData data, 
-      const int tsnk,
-      const int tsrc, 
-      const int t_f,
-      const int t_i,
+      const int tsnk,                        // sink position 
+      const int tsrc,                        // source position
+      const int t_f,                         // high end of fit range
+      const int t_i,                         // low end of fit range 
       ADAT::Handle<FitComparator> fitComp,
-      const int minTSlice, 
+      const int minTSlice,                   // min length of fit range
       const std::string &fit_type);
 
   // the fit
@@ -533,6 +533,7 @@ struct FitThreePoint
   std::string m_best_fit_name;  
   double m_chisq;
   double m_nDoF;
+  double dlow,dhigh; 
   ENSEM::EnsemReal m_FF;
   ENSEM::EnsemReal m_A1;
   ENSEM::EnsemReal m_E1; 
