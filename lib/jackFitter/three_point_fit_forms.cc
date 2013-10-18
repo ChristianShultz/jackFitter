@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Thu 17 Oct 2013 02:17:04 PM EDT
+ * Last Modified : Fri 18 Oct 2013 02:42:25 PM EDT
 
  * Created By : shultz
 
@@ -702,9 +702,6 @@ namespace
     }
 
 
-
-
-
 } // namespace anonomyous 
 
 
@@ -738,16 +735,24 @@ FitThreePoint::FitThreePoint(EnsemData data,
 
   ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC,leftExpPC,rightExpPC; 
 
-  if((fit_type == "symExpPC") || (fit_type == "all"))
+  if( fit_type == "symExpPC" )
     symExpPC = tryThreePointFit("symExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-  else if((fit_type == "leftExpPC") || (fit_type == "all"))
+  else if( fit_type == "leftExpPC" )
     leftExpPC = tryThreePointFit("leftExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-  else if((fit_type == "rightExpPC") || (fit_type == "all"))
+  else if( fit_type == "rightExpPC" )
     rightExpPC = tryThreePointFit("rightExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-  else if((fit_type == "dExpPC") || (fit_type == "all"))
+  else if( fit_type == "dExpPC" )
     dExpPC = tryThreePointFit("dExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
-  else if((fit_type == "const") || (fit_type == "all"))
+  else if( fit_type == "const" )
     Constant = tryThreePointFit("const",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+  else if( fit_type == "all" ) 
+  {
+    symExpPC = tryThreePointFit("symExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    leftExpPC = tryThreePointFit("leftExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    rightExpPC = tryThreePointFit("rightExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    dExpPC = tryThreePointFit("dExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+    Constant = tryThreePointFit("const",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits);
+  }
   else
   {
     std::cerr << __func__ << ": unknown fit type " << fit_type 
@@ -814,10 +819,14 @@ FitThreePoint::FitThreePoint(EnsemData data,
         std::cerr << "Warning: something wacky is going on here" << std::endl;
     }
 
+
     // test for initialization then test for match
+    bool matched = false; 
+
     if ( &*symExpPC)
     {  if (best.ff->getFitType() == symExpPC->getFitType())
       {
+        matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
         m_A1 = bestFit.getJackFitParValue("A");
         m_A2 = bestFit.getJackFitParValue("A");
@@ -825,10 +834,12 @@ FitThreePoint::FitThreePoint(EnsemData data,
         m_E2 = bestFit.getJackFitParValue("E");
       }
     }
-    else if ( &*dExpPC ) 
+
+    if ( &*dExpPC ) 
     { 
       if (best.ff->getFitType() == dExpPC->getFitType())
       {
+        matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
         m_A1 = bestFit.getJackFitParValue("A1");
         m_E1 = bestFit.getJackFitParValue("E1");
@@ -836,32 +847,39 @@ FitThreePoint::FitThreePoint(EnsemData data,
         m_E2 = bestFit.getJackFitParValue("E2");
       }
     }
-    else if ( &*leftExpPC)
+
+    if ( &*leftExpPC)
     { 
       if (best.ff->getFitType() == leftExpPC->getFitType())
       {
+        matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
         m_A2 = bestFit.getJackFitParValue("A");
         m_E2 = bestFit.getJackFitParValue("E");
       }
     }
-    else if ( &*rightExpPC )
+
+    if ( &*rightExpPC )
     { 
       if (best.ff->getFitType() == rightExpPC->getFitType())
       {
+        matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
         m_A1 = bestFit.getJackFitParValue("A");
         m_E1 = bestFit.getJackFitParValue("E");
       }
     }
-    else if ( &*Constant ) 
+
+    if ( &*Constant ) 
     { 
       if (best.ff->getFitType() == Constant->getFitType())
       {
+        matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
       }
     }
-    else
+
+    if ( !!! matched ) 
     {
       std::cerr << __PRETTY_FUNCTION__ << ":" << __FILE__ << ":" << __LINE__ 
         << ": something went wrong in this context" << std::endl;
