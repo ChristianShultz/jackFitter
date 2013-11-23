@@ -43,7 +43,7 @@ using namespace ROOT::Minuit2;
 class FitFunction{ //THIS IS A BASE CLASS 
   public:
     FitFunction(int nPars_);   
-    ~FitFunction(){};
+    virtual ~FitFunction(){};
 
     //return the function value with a fixed set of params - user specifies this in a concrete class
     virtual double operator()(const vector<double>& pars, double x) const = 0; //pure virtual
@@ -276,6 +276,7 @@ class FitDescriptor{
 class FitComparator{
   public:
     FitComparator(){};
+    virtual ~FitComparator() {}
     virtual double operator()(const FitDescriptor& fitDesc, const JackFit& fit) const = 0 ;
 
     // allow for the possibility of tacking on a bias function
@@ -320,7 +321,7 @@ class JackFitLog{
 
     // allow for passing in an extra set of external bias parameters 
     void addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters);
-    
+
     void addFit(std::string fitname, ADAT::Handle<FitFunction> ff, const std::vector<double> &biasParameters,
         const std::vector<std::pair<std::string,int> > &named_ints);
 
