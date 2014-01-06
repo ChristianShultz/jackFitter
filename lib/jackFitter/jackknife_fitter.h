@@ -21,7 +21,7 @@
 #include <iostream>
 #include <map>
 
-#include <omp.h>
+//#include <omp.h>
 
 #include <itpp/itbase.h>
 #include "ensem/ensem.h"

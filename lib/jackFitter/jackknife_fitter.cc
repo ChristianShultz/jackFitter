@@ -343,11 +343,14 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
   //  mini.SetPrecision(1.0e-8);
 
-
+#if 0
   if(!omp_in_parallel()){
     omp_set_num_threads(1); // minuit will thread the computation of derivatives under the hood - can slow it down
     // will this bugger up reconfit_svd ???
   }
+#else
+#warning "HAVE DISABLE OMP Calls - this bit of code does a omp_num_threads=1"
+#endif
 
   //MINIMIZE
   FunctionMinimum min = mini();
