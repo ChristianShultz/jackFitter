@@ -123,7 +123,7 @@ void EnsemData::addDatum(double x, EnsemReal y){
     //check there isn't already a datum at this x-values
     int find = find_exact(x_data, x);
     
-    if(find = -1){
+    if(find == -1){
       EnsemVectorReal temp = y_data; y_data.resizeObs(totalNData + 1);
       for(int i =0; i < totalNData; i++){pokeObs(y_data, peekObs(temp , i), i);}    
       pokeObs(y_data, y, totalNData);

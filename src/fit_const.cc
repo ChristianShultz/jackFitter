@@ -9,8 +9,6 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
-//#include <omp.h>
-
 
 using namespace std;
 using namespace ENSEM;
@@ -23,10 +21,6 @@ int main(int argc, char *argv[]){
   int tmin; {istringstream val(argv[2]); val >> tmin;}
   int tmax; {istringstream val(argv[3]); val >> tmax;}
   double SVcutoff;  {istringstream val(argv[4]); val >> SVcutoff;}
-
-  //  omp_set_num_threads(1); // minuit will thread under the hood - can slow it down
-
-  //cout << "we have access to " << omp_get_max_threads() << " threads" << endl;
 
   //load the data
   EnsemVectorReal corr;  {ostringstream filename;   filename << filen;   read(filename.str(), corr);}
