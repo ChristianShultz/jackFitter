@@ -220,7 +220,9 @@ class JackFit
     // backdoor 
     ADAT::Handle<FitFunction> get_fit_func(void) {return ff;}
 
-  private:
+    // CJS -- having problems with jack fitter yet again, just crack it open 
+    // and make the whole class public..
+    //  private:
 
     EnsemData data;
     Handle<FitFunction> ff;
@@ -335,7 +337,9 @@ class JackFitLog{
 
     FitDescriptor getBestJackFit(FitComparator& fitComp, int& rank); //will walk down the list of fits until one is found where the jackFit succeeds
 
-  private:
+    // <CJS>  -- why do we have private members? i need to get at this for a hack 
+//  private:
+    // </CJS> 
     EnsemData data; //the data store
     vector<FitDescriptor> keys; 
     vector<JackFit> fits;        // a map would be better but I had problems!

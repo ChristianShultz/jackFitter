@@ -1,8 +1,36 @@
 #include "jackknife_fitter.h"
+#include <exception>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+// CJS full debug mode
+template<class printer> 
+void printer_function(const std::string &s)
+{
+  printer::print(s);
+}
+
+template<typename T> 
+std::string debug_string(T t)
+{
+  std::stringstream ss; 
+  ss << t ;
+  return ss.str(); 
+}
+
+struct debug_printer
+{
+  static void print(const std::string &s)
+  {}
+//  {
+//    std::cout << s << std::endl;
+//  }
+};
+
+
+
 
 
 //*******************************************************************
@@ -304,14 +332,27 @@ JackFit::JackFit(EnsemData data_, Handle<FitFunction> ff_): data(data_), ff(ff_)
 bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> startErrors){
   if( (bin > data.getNBins() ) || (bin < -1) ){cerr << "bin out of range" << endl; exit(1);}
 
+
   //prepare the data on this bin
   vector<double> y;
 
   if(bin == -1){ //average data
+
+    printer_function<debug_printer>("enter runBinFit via runAvgFit"); 
+
     EnsemVectorReal yy = data.getYData();
     for(int i=0; i < data.getNData(); i++){
       y.push_back( toDouble( mean( peekObs(yy, i) ) ) );
     }
+
+  //  // CJS
+  //  std::stringstream ss; 
+  //  for(int i=0; i < data.getNData(); i++)
+  //    ss << " " << y[i];
+  //  
+  //  printer_function<debug_printer>(" average data size = " + debug_string(y.size()) 
+  //    + " value "  + ss.str() ); 
+
   }
   else{ //pull out one bin
     if(!initJack){ cerr << "run a jack fit first before you play with individual bins" << endl; exit(1);}
@@ -335,6 +376,8 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
     if(ff->isParamUpperLimited(i)){upar.SetUpperLimit(i, ff->getParamUpperLimit(i));};
     if(ff->isParamLowerLimited(i)){upar.SetLowerLimit(i, ff->getParamLowerLimit(i));};
   }
+
+  printer_function<debug_printer>( "MnUserParameters = " + debug_string(upar) ); 
 
   //  cout << "MnUserParameters = " << endl << upar << endl;
 
@@ -360,6 +403,10 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   bool fitSuccess = min.IsValid();
 
 
+//  if(fitSuccess)  
+//    printer_function<debug_printer>( "FunctionMinimum = " + debug_string(min) ); 
+//  else
+//    printer_function<debug_printer>( "(failed) FunctionMinimum = " + debug_string(min) ); 
 
 
 
@@ -404,6 +451,7 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
 
 bool JackFit::runAvgFit(){ 
+  printer_function<debug_printer>("entering runAvgFit"); 
   return runBinFit(-1, ff->getDefaultParValues(), ff->getDefaultParErrors()); 
 }
 
@@ -887,16 +935,21 @@ JackFit& JackFitLog::getFit(FitDescriptor fitDesc){
 }
 
 FitDescriptor JackFitLog::getBestFit(FitComparator& fitComp){
+  // Whoever wrote this lied to you, the below statement 
+  // is manifestly untrue -- CJS
   //at least one fit must have suceeded
 
   map<double, FitDescriptor> list;
   list = getFitList(fitComp);
 
-  //this use to be a failure mode.. 
+  // CJS
+  // this use to be a nasty failure mode, fail gracefully 
   if(list.end() == list.begin())
   {
-    cerr << "no fits present" << endl;
-    exit(1);
+    cerr << __func__ << " Error: no fits present" << endl;
+    ADAT::Handle<FitFunction> fail(new FitFunctionFailure()); 
+    FitDescriptor failure (fail, std::vector<bool>(), std::string("FAILED")); 
+    return failure; 
   }
   map<double, FitDescriptor>::const_iterator p = list.end(); p--;
 

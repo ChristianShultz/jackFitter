@@ -53,7 +53,6 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
 
   //find the best oneExp fit
   FitDescriptor bestOneExp = fits.getBestFit(*fitComp);
-  JackFit bestOneExpFit = fits.getFit( bestOneExp );
 
 
   //since timeslice data will be ordered
@@ -71,13 +70,30 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
   PrinCorrTwoExp* tmp2 = new PrinCorrTwoExp(t0);
   Handle<FitFunction> twoExp(tmp2);
 
-  twoExp->setDefaultParValue("mass_0", bestOneExpFit.getAvgFitParValue("mass_0") ); 
-  twoExp->setDefaultParError("mass_0", 5.0*bestOneExpFit.getAvgFitParError("mass_0"));
-  
-  twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5);
-  twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
-  twoExp->setDefaultParValue("A", 0.1);
-  twoExp->setDefaultParError("A", 0.1);
+  // CJS -- can only do this step if the fit was not a failure 
+  if( bestOneExp.fitname != "FAILED" )
+  {
+    // try to use the one exp fits as pars in the two exp fit 
+    JackFit bestOneExpFit = fits.getFit( bestOneExp );
+
+    twoExp->setDefaultParValue("mass_0", bestOneExpFit.getAvgFitParValue("mass_0") ); 
+    twoExp->setDefaultParError("mass_0", 5.0*bestOneExpFit.getAvgFitParError("mass_0"));
+
+    twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5);
+    twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
+    twoExp->setDefaultParValue("A", 0.1);
+    twoExp->setDefaultParError("A", 0.1);
+  }
+  else  // do a hack job 
+  {
+    twoExp->setDefaultParValue("mass_0", 0.2); //totally arbitrary - could use meff to guess
+    twoExp->setDefaultParError("mass_0", 0.2); //totally arbitrary
+
+    twoExp->setDefaultParValue("mass_1", 0.7);
+    twoExp->setDefaultParError("mass_1", 0.2);
+    twoExp->setDefaultParValue("A", 0.1);
+    twoExp->setDefaultParError("A", 0.1);
+  }
 
   //limit the masses to positive values
   twoExp->setParamLowerLimit("mass_0", 0.0);
@@ -88,7 +104,7 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
   for(int i = 0; i < tslices.size(); i++){
     if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "twoExp tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), twoExp);
     } 
@@ -109,30 +125,30 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
     //no plot !!!
   }
   else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
-    {
+  {
     //negative mass found - default to the cutoff - HORRIBLE !!!
     EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
     mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
     best_fit_name = "FAILED (negative mass)";
     fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
     //no plot !!!
-    }
+  }
   else{
-  
+
     if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
     JackFit& bestFit = fits.getFit(best);
-    
+
     mass_0 = bestFit.getJackFitParValue("mass_0");
     if(nExp ==2){
       mass_1 = bestFit.getJackFitParValue("mass_1");
       A = bestFit.getJackFitParValue("A");
     }
-    
+
     chisq = bestFit.getJackChisq();
     nDoF = bestFit.getNDoF();
     best_fit_name = best.fitname;
-    
-    
+
+
     //write out a summary of the fits
     int count = 1;
     map<double, FitDescriptor> list = fits.getFitList(*fitComp);
@@ -146,26 +162,26 @@ FitPrincipalCorrelator::FitPrincipalCorrelator(EnsemData data_, int t0_, Handle<
       ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
       ss << setw(12) << fixed << setprecision(3) << Q <<"|";
       ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
+
       if(count == rank){ ss << "*";}else{ ss << " ";}
-      
+
       ss << " m=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
-      
+
       if( ((p->second).ff).operator->() == twoExp.operator->() ){
-	ss << ", m'=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
-	ss << ", A=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A");
+        ss << ", m'=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
+        ss << ", A=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("A") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("A");
       }
       ss << endl;
       count++;
     } 
     fit_summary = ss.str();
-    
+
     //make the plot
     ConstTimesExp expWeight(exp(- mass_0 * Real(t0)) , mass_0);
-    
+
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     lab << "; m(t0=" << t0 << ")=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
-    
+
     axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(tmax + 5.5), lab.str() );
   }
 
@@ -187,7 +203,7 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
 
   //exclude noisy points
   (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff); 
- 
+
   vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
   int tlow = all_tslices[0];
 
@@ -206,7 +222,7 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
   int tmax = int( *max_element(tslices.begin(), tslices.end() ) );
 
   //  cout << "about to start oneExp fits" << endl;
-    
+
   //=======================
   //oneExp fits
   //=======================
@@ -223,7 +239,7 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
   for(int i = 0; i < tslices.size(); i++){
     if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "oneExp tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), oneExp);
     } 
@@ -255,7 +271,7 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
 
   twoExp->setDefaultParValue("amp_0", bestOneExpFit.getAvgFitParValue("amp_0") ); 
   twoExp->setDefaultParError("amp_0", 5.0*bestOneExpFit.getAvgFitParError("amp_0"));
-  
+
   twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5);
   twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
 
@@ -270,7 +286,7 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
   for(int i = 0; i < tslices.size(); i++){
     if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "twoExp tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), twoExp);
     } 
@@ -289,31 +305,31 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
     //no plot !!!
   }
   /*  else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
-    {
-    //negative mass found - default to the cutoff - HORRIBLE !!!
-    EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
-    mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
-    best_fit_name = "FAILED (negative mass)";
-    fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
-    //no plot !!!
-    }
+      {
+  //negative mass found - default to the cutoff - HORRIBLE !!!
+  EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
+  mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
+  best_fit_name = "FAILED (negative mass)";
+  fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
+  //no plot !!!
+  }
   */
   else{
     if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
     JackFit& bestFit = fits.getFit(best);
-    
+
     mass_0 = bestFit.getJackFitParValue("mass_0");
     amp_0 = bestFit.getJackFitParValue("amp_0");
     if(nExp == 2){
       mass_1 = bestFit.getJackFitParValue("mass_1");
       amp_1 = bestFit.getJackFitParValue("amp_1");
     }
-    
+
     chisq = bestFit.getJackChisq();
     nDoF = bestFit.getNDoF();
     best_fit_name = best.fitname;
-    
-    
+
+
     //write out a summary of the fits
     int count = 1;
     map<double, FitDescriptor> list = fits.getFitList(*fitComp);
@@ -327,27 +343,27 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
       ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
       ss << setw(12) << fixed << setprecision(3) << Q <<"|";
       ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
+
       if(count == rank){ ss << "*";}else{ ss << " ";}
-      
+
       ss << " m0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
       ss << " a0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("amp_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("amp_0");
-      
+
       if( ((p->second).ff).operator->() == twoExp.operator->() ){
-	ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
-	ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
+        ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
+        ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
       }
       ss << endl;
       count++;
     } 
     fit_summary = ss.str();
-    
+
     //make the plot
     ConstTimesExp expWeight(mass_0 / mass_0 , mass_0);
-    
+
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
-    
+
     axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(tmax + 5.5), lab.str() );
   }
 
@@ -357,111 +373,111 @@ FitCorrelatorExp::FitCorrelatorExp(EnsemData data_, Handle<FitComparator> fitCom
 
 //========================================================================================================================
 FitCorrelatorCosh::FitCorrelatorCosh(EnsemData data_, int T_, Handle<FitComparator> fitComp_, double noiseRatioCutoff, int minTSlices)
- : T(T_), fits(data_), fitComp(fitComp_){
+  : T(T_), fits(data_), fitComp(fitComp_){
 
-  EnsemVectorReal y = (fits.getEnsemData()).getYData();
-  vector<double> t_temp = (fits.getEnsemData()).getXData();
+    EnsemVectorReal y = (fits.getEnsemData()).getYData();
+    vector<double> t_temp = (fits.getEnsemData()).getXData();
 
-  //exclude noisy points
-  (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff);   // alternatively can exclude all points after the time where the data is first noisy - not implemented
+    //exclude noisy points
+    (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff);   // alternatively can exclude all points after the time where the data is first noisy - not implemented
 
-  vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
-  int tlow = all_tslices[0];
-  if(all_tslices.size() < minTSlices){ cerr << "** not enough timeslices to have minTSlices = " << minTSlices << endl; exit(1); }
+    vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
+    int tlow = all_tslices[0];
+    if(all_tslices.size() < minTSlices){ cerr << "** not enough timeslices to have minTSlices = " << minTSlices << endl; exit(1); }
 
-  //ensure enough timeslices to do a fit
-  if((fits.getEnsemData()).getNData() < minTSlices ){
-    (fits.getEnsemData()).hideAll();
-    for(int t = tlow; t <= tlow + minTSlices; t++){
-      (fits.getEnsemData()).showDatumByX(t);
+    //ensure enough timeslices to do a fit
+    if((fits.getEnsemData()).getNData() < minTSlices ){
+      (fits.getEnsemData()).hideAll();
+      for(int t = tlow; t <= tlow + minTSlices; t++){
+        (fits.getEnsemData()).showDatumByX(t);
+      }
     }
-  }
 
-  //find the largest t-value being considered 
-  vector<double> tslices = (fits.getEnsemData()).getXData();
-  int tmax = int( *max_element(tslices.begin(), tslices.end() ) );
-    
-  //=======================
-  //oneCosh fits
-  //=======================
-  CorrOneCosh* tmp1 = new CorrOneCosh(T);
-  Handle<FitFunction> oneExp(tmp1);
+    //find the largest t-value being considered 
+    vector<double> tslices = (fits.getEnsemData()).getXData();
+    int tmax = int( *max_element(tslices.begin(), tslices.end() ) );
 
-  oneExp->setDefaultParValue("mass_0", 0.2); //totally arbitrary - could use meff to guess
-  oneExp->setDefaultParError("mass_0", 0.2); //totally arbitrary
+    //=======================
+    //oneCosh fits
+    //=======================
+    CorrOneCosh* tmp1 = new CorrOneCosh(T);
+    Handle<FitFunction> oneExp(tmp1);
 
-  oneExp->setDefaultParValue("amp_0", 1.0); //totally arbitrary
-  oneExp->setDefaultParError("amp_0", 1.0); //totally arbitrary
+    oneExp->setDefaultParValue("mass_0", 0.2); //totally arbitrary - could use meff to guess
+    oneExp->setDefaultParError("mass_0", 0.2); //totally arbitrary
 
-  //loop over tmin values
-  for(int i = 0; i < tslices.size(); i++){
-    if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
-      (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
-      stringstream s; s << "oneCosh tmin= " << int(tslices[i]) << " tmax= " << tmax;
-      fits.addFit(s.str(), oneExp);
-    } 
-  }// next t min
+    oneExp->setDefaultParValue("amp_0", 1.0); //totally arbitrary
+    oneExp->setDefaultParError("amp_0", 1.0); //totally arbitrary
 
-  //find the best oneExp fit
-  FitDescriptor bestOneExp = fits.getBestFit(*fitComp);
-  JackFit bestOneExpFit = fits.getFit( bestOneExp );
-  
-  //since timeslice data will be ordered
-  //tmin is given by the lowest true in active data
-  int tminOneExp;
-  vector<bool> active = bestOneExp.activeData;
-  for(int i = 0; i < active.size(); i++){ if(active[i]){tminOneExp = int(all_tslices[i]); break;}; }
+    //loop over tmin values
+    for(int i = 0; i < tslices.size(); i++){
+      if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
+        (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
 
-  //reinstate the data
-  for(int i = 0; i < tslices.size(); i++){(fits.getEnsemData()).showDatumByX( tslices[i] );}
+        stringstream s; s << "oneCosh tmin= " << int(tslices[i]) << " tmax= " << tmax;
+        fits.addFit(s.str(), oneExp);
+      } 
+    }// next t min
 
-  //=======================
-  //twoExp fits
-  //=======================
-  CorrTwoCosh* tmp2 = new CorrTwoCosh(T);
-  Handle<FitFunction> twoExp(tmp2);
+    //find the best oneExp fit
+    FitDescriptor bestOneExp = fits.getBestFit(*fitComp);
+    JackFit bestOneExpFit = fits.getFit( bestOneExp );
 
-  twoExp->setDefaultParValue("mass_0", bestOneExpFit.getAvgFitParValue("mass_0") ); 
-  twoExp->setDefaultParError("mass_0", 5.0*bestOneExpFit.getAvgFitParError("mass_0"));
+    //since timeslice data will be ordered
+    //tmin is given by the lowest true in active data
+    int tminOneExp;
+    vector<bool> active = bestOneExp.activeData;
+    for(int i = 0; i < active.size(); i++){ if(active[i]){tminOneExp = int(all_tslices[i]); break;}; }
 
-  twoExp->setDefaultParValue("amp_0", bestOneExpFit.getAvgFitParValue("amp_0") ); 
-  twoExp->setDefaultParError("amp_0", 5.0*bestOneExpFit.getAvgFitParError("amp_0"));
-  
-  twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5   );
-  twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
+    //reinstate the data
+    for(int i = 0; i < tslices.size(); i++){(fits.getEnsemData()).showDatumByX( tslices[i] );}
 
-  twoExp->setDefaultParValue("amp_1", bestOneExpFit.getAvgFitParValue("amp_0") );   //assume the excited amplitude the same 
-  twoExp->setDefaultParError("amp_1", 5.0*bestOneExpFit.getAvgFitParError("amp_0")); //big error
+    //=======================
+    //twoExp fits
+    //=======================
+    CorrTwoCosh* tmp2 = new CorrTwoCosh(T);
+    Handle<FitFunction> twoExp(tmp2);
 
-  //limit the masses to positive values
-  twoExp->setParamLowerLimit("mass_0", 0.0);
-  twoExp->setParamLowerLimit("mass_1", 0.0);
+    twoExp->setDefaultParValue("mass_0", bestOneExpFit.getAvgFitParValue("mass_0") ); 
+    twoExp->setDefaultParError("mass_0", 5.0*bestOneExpFit.getAvgFitParError("mass_0"));
 
-  //loop over tmin values
-  for(int i = 0; i < tslices.size(); i++){
-    if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
-      (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
-      stringstream s; s << "twoCosh tmin= " << int(tslices[i]) << " tmax= " << tmax;
-      fits.addFit(s.str(), twoExp);
-    } 
-  }// next t min
+    twoExp->setDefaultParValue("amp_0", bestOneExpFit.getAvgFitParValue("amp_0") ); 
+    twoExp->setDefaultParError("amp_0", 5.0*bestOneExpFit.getAvgFitParError("amp_0"));
 
-   //get the best jack fit
-  int rank;
-  FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
+    twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5   );
+    twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
 
-  if(best.fitname == "FAILED"){
-    //no jackknife fits found - default to the cutoff - HORRIBLE !!!
-    EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
-    mass_0 = dum;   chisq = 1.0e10;    nDoF = 1;    nExp = 1;
-    best_fit_name = "FAILED";
-    fit_summary = "FAILED -  set mass_0 to 1.0";
-    //no plot !!!
-  }
-  /*  else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
-    {
+    twoExp->setDefaultParValue("amp_1", bestOneExpFit.getAvgFitParValue("amp_0") );   //assume the excited amplitude the same 
+    twoExp->setDefaultParError("amp_1", 5.0*bestOneExpFit.getAvgFitParError("amp_0")); //big error
+
+    //limit the masses to positive values
+    twoExp->setParamLowerLimit("mass_0", 0.0);
+    twoExp->setParamLowerLimit("mass_1", 0.0);
+
+    //loop over tmin values
+    for(int i = 0; i < tslices.size(); i++){
+      if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
+        (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
+
+        stringstream s; s << "twoCosh tmin= " << int(tslices[i]) << " tmax= " << tmax;
+        fits.addFit(s.str(), twoExp);
+      } 
+    }// next t min
+
+    //get the best jack fit
+    int rank;
+    FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
+
+    if(best.fitname == "FAILED"){
+      //no jackknife fits found - default to the cutoff - HORRIBLE !!!
+      EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
+      mass_0 = dum;   chisq = 1.0e10;    nDoF = 1;    nExp = 1;
+      best_fit_name = "FAILED";
+      fit_summary = "FAILED -  set mass_0 to 1.0";
+      //no plot !!!
+    }
+    /*  else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
+        {
     //negative mass found - default to the cutoff - HORRIBLE !!!
     EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
     mass_0 = dum;
@@ -472,66 +488,66 @@ FitCorrelatorCosh::FitCorrelatorCosh(EnsemData data_, int T_, Handle<FitComparat
     fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
     //no plot !!!
     }
-  */
-  else{
-  
-    if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
-    JackFit& bestFit = fits.getFit(best);
-    
-    mass_0 = bestFit.getJackFitParValue("mass_0");
-    amp_0 = bestFit.getJackFitParValue("amp_0");
-    if(nExp == 2){
-      mass_1 = bestFit.getJackFitParValue("mass_1");
-      amp_1 = bestFit.getJackFitParValue("amp_1");
-    }
-    
-    chisq = bestFit.getJackChisq();
-    nDoF = bestFit.getNDoF();
-    best_fit_name = best.fitname;
-  
-    //write out a summary of the fits
-    int count = 1;
-    map<double, FitDescriptor> list = fits.getFitList(*fitComp);
-    stringstream ss; 
-    ss << "                         | chisq/nDoF |     Q      |  fitCrit   | " << endl;
-    for( map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++){
-      JackFit& thisFit = fits.getFit(p->second);
-      double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
-      double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
-      ss << setw(25) <<(p->second).fitname << "|";
-      ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
-      ss << setw(12) << fixed << setprecision(3) << Q <<"|";
-      ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
-      if(count == rank){ ss << "*";}else{ ss << " ";}
-      
-      ss << " m0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
-      ss << " a0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("amp_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("amp_0");
-      
-      if( ((p->second).ff).operator->() == twoExp.operator->() ){
-        ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
-        ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
+    */
+    else{
+
+      if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
+      JackFit& bestFit = fits.getFit(best);
+
+      mass_0 = bestFit.getJackFitParValue("mass_0");
+      amp_0 = bestFit.getJackFitParValue("amp_0");
+      if(nExp == 2){
+        mass_1 = bestFit.getJackFitParValue("mass_1");
+        amp_1 = bestFit.getJackFitParValue("amp_1");
       }
-      ss << endl;
-      count++;
-    } 
-    fit_summary = ss.str();
-    
-    
 
-    //make the plot  -- this may need a rethink !!
-    //better to divide the whole cosh
-    ConstDivideCosh weight(mass_0 / mass_0 , mass_0, T);//Real(0.0)*mass_0);
-    
-    stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-    lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0
-)));
-    
-    axis_plot = bestFit.makeJackFitPlotAxis(weight, 0.0, double(tmax + 5.5), lab.str() );
-  }
+      chisq = bestFit.getJackChisq();
+      nDoF = bestFit.getNDoF();
+      best_fit_name = best.fitname;
+
+      //write out a summary of the fits
+      int count = 1;
+      map<double, FitDescriptor> list = fits.getFitList(*fitComp);
+      stringstream ss; 
+      ss << "                         | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+      for( map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++){
+        JackFit& thisFit = fits.getFit(p->second);
+        double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
+        double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
+        ss << setw(25) <<(p->second).fitname << "|";
+        ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
+        ss << setw(12) << fixed << setprecision(3) << Q <<"|";
+        ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+
+        if(count == rank){ ss << "*";}else{ ss << " ";}
+
+        ss << " m0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
+        ss << " a0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("amp_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("amp_0");
+
+        if( ((p->second).ff).operator->() == twoExp.operator->() ){
+          ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
+          ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
+        }
+        ss << endl;
+        count++;
+      } 
+      fit_summary = ss.str();
 
 
-};
+
+      //make the plot  -- this may need a rethink !!
+      //better to divide the whole cosh
+      ConstDivideCosh weight(mass_0 / mass_0 , mass_0, T);//Real(0.0)*mass_0);
+
+      stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+      lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0
+              )));
+
+      axis_plot = bestFit.makeJackFitPlotAxis(weight, 0.0, double(tmax + 5.5), lab.str() );
+    }
+
+
+  };
 ///========================================================================================================================
 FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitComparator> fitComp_, double noiseRatioCutoff, int minTSlices) : fits(data_), fitComp(fitComp_){
 
@@ -540,7 +556,7 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
 
   //exclude noisy points
   (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff); 
- 
+
   vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
   int tlow = all_tslices[0];
 
@@ -559,7 +575,7 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
   int tmax = int( *max_element(tslices.begin(), tslices.end() ) );
 
   //  cout << "about to start oneExp fits" << endl;
-    
+
   //=======================
   //oneExp fits
   //=======================
@@ -585,7 +601,7 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
   for(int i = 0; i < tslices.size(); i++){
     if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "oneExpAndConst tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), oneExp);
     } 
@@ -621,7 +637,7 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
 
   twoExp->setDefaultParValue("amp_0", bestOneExpFit.getAvgFitParValue("amp_0") ); 
   twoExp->setDefaultParError("amp_0", 5.0*bestOneExpFit.getAvgFitParError("amp_0"));
-  
+
   twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5);
   twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
 
@@ -636,7 +652,7 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
   for(int i = 0; i < tslices.size(); i++){
     if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "twoExpAndConst tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), twoExp);
     } 
@@ -655,19 +671,19 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
     //no plot !!!
   }
   /*  else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
-    {
-    //negative mass found - default to the cutoff - HORRIBLE !!!
-    EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
-    mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
-    best_fit_name = "FAILED (negative mass)";
-    fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
-    //no plot !!!
-    }
+      {
+  //negative mass found - default to the cutoff - HORRIBLE !!!
+  EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
+  mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
+  best_fit_name = "FAILED (negative mass)";
+  fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
+  //no plot !!!
+  }
   */
   else{
     if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
     JackFit& bestFit = fits.getFit(best);
-    
+
     constant =  bestFit.getJackFitParValue("const");
     mass_0 = bestFit.getJackFitParValue("mass_0");
     amp_0 = bestFit.getJackFitParValue("amp_0");
@@ -675,12 +691,12 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
       mass_1 = bestFit.getJackFitParValue("mass_1");
       amp_1 = bestFit.getJackFitParValue("amp_1");
     }
-    
+
     chisq = bestFit.getJackChisq();
     nDoF = bestFit.getNDoF();
     best_fit_name = best.fitname;
-    
-    
+
+
     //write out a summary of the fits
     int count = 1;
     map<double, FitDescriptor> list = fits.getFitList(*fitComp);
@@ -694,29 +710,29 @@ FitCorrelatorExpAndConst::FitCorrelatorExpAndConst(EnsemData data_, Handle<FitCo
       ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
       ss << setw(12) << fixed << setprecision(3) << Q <<"|";
       ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
+
       if(count == rank){ ss << "*";}else{ ss << " ";}
       //      ss << " c=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("const") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("const");   
       ss << " c=" << setw(8)  << thisFit.getAvgFitParValue("const") << " +/-" <<  setw(8) << thisFit.getAvgFitParError("const");   
       ss << " m0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
       ss << " a0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("amp_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("amp_0");
-      
+
       if( ((p->second).ff).operator->() == twoExp.operator->() ){
-	ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
-	ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
+        ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
+        ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
       }
       ss << endl;
       count++;
     } 
     fit_summary = ss.str();
-    
+
     //make the plot
     ConstTimesExp expWeight(mass_0 / mass_0 , mass_0);
     //One one(mass_0);
 
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
-    
+
     axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(tmax + 5.5), lab.str() );
     //axis_plot = bestFit.makeJackFitPlotAxis(one, 0.0, double(tmax + 5.5), lab.str() );
   }
@@ -733,7 +749,7 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
 
   //exclude noisy points
   (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff); 
- 
+
   vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
   int tlow = all_tslices[0];
 
@@ -752,7 +768,7 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
   int tmax = int( *max_element(tslices.begin(), tslices.end() ) );
 
   //  cout << "about to start oneExp fits" << endl;
-    
+
   //=======================
   //oneExp fits
   //=======================
@@ -778,7 +794,7 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
   for(int i = 0; i < tslices.size(); i++){
     if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "oneCoshAndConst tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), oneExp);
     } 
@@ -814,7 +830,7 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
 
   twoExp->setDefaultParValue("amp_0", bestOneExpFit.getAvgFitParValue("amp_0") ); 
   twoExp->setDefaultParError("amp_0", 5.0*bestOneExpFit.getAvgFitParError("amp_0"));
-  
+
   twoExp->setDefaultParValue("mass_1", bestOneExpFit.getAvgFitParValue("mass_0") + 0.5);
   twoExp->setDefaultParError("mass_1", 10.0*bestOneExpFit.getAvgFitParError("mass_0"));
 
@@ -829,7 +845,7 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
   for(int i = 0; i < tslices.size(); i++){
     if( ((tmax - int(tslices[i]) + 1.1 ) >= minTSlices ) && (tslices[i] + 0.1 < tminOneExp ) ){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "twoCoshAndConst tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), twoExp);
     } 
@@ -848,19 +864,19 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
     //no plot !!!
   }
   /*  else if(toDouble(mean(fits.getFit(best).getJackFitParValue("mass_0"))) <= 0.0)
-    {
-    //negative mass found - default to the cutoff - HORRIBLE !!!
-    EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
-    mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
-    best_fit_name = "FAILED (negative mass)";
-    fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
-    //no plot !!!
-    }
+      {
+  //negative mass found - default to the cutoff - HORRIBLE !!!
+  EnsemReal dum; dum.resize( (fits.getEnsemData()).getNBins() ); dum = Real(1.0);
+  mass_0 = dum;    chisq = 1.0e10;    nDoF = 1;    nExp = 1;
+  best_fit_name = "FAILED (negative mass)";
+  fit_summary = "FAILED: fit with negative mass_0 - set mass_0 to 1.0";
+  //no plot !!!
+  }
   */
   else{
     if( (best.ff).operator->() == twoExp.operator->() ){nExp = 2;}else{nExp = 1;};
     JackFit& bestFit = fits.getFit(best);
-    
+
     constant =  bestFit.getJackFitParValue("const");
     mass_0 = bestFit.getJackFitParValue("mass_0");
     amp_0 = bestFit.getJackFitParValue("amp_0");
@@ -868,12 +884,12 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
       mass_1 = bestFit.getJackFitParValue("mass_1");
       amp_1 = bestFit.getJackFitParValue("amp_1");
     }
-    
+
     chisq = bestFit.getJackChisq();
     nDoF = bestFit.getNDoF();
     best_fit_name = best.fitname;
-    
-    
+
+
     //write out a summary of the fits
     int count = 1;
     map<double, FitDescriptor> list = fits.getFitList(*fitComp);
@@ -887,29 +903,29 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
       ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
       ss << setw(12) << fixed << setprecision(3) << Q <<"|";
       ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
+
       if(count == rank){ ss << "*";}else{ ss << " ";}
       //ss << " c=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("const") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("const");   
       ss << " c=" << setw(8) << thisFit.getAvgFitParValue("const") << " +/-" <<  setw(8) << thisFit.getAvgFitParError("const");   
       ss << " m0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("mass_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("mass_0");
       ss << " a0=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("amp_0") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("amp_0");
-      
+
       if( ((p->second).ff).operator->() == twoExp.operator->() ){
-	ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
-	ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
+        ss << ", m1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("mass_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("mass_1");
+        ss << ", a1=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("amp_1") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("amp_1");
       }
       ss << endl;
       count++;
     } 
     fit_summary = ss.str();
-    
+
     //make the plot
     ConstTimesExp expWeight(mass_0 / mass_0 , mass_0);
     //One one(mass_0);
 
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
-    
+
     axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(tmax + 5.5), lab.str() );
     //axis_plot = bestFit.makeJackFitPlotAxis(one, 0.0, double(tmax + 5.5), lab.str() );
   }
@@ -925,15 +941,15 @@ FitCorrelatorCoshAndConst::FitCorrelatorCoshAndConst(EnsemData data_, int T_, Ha
 
 ///========================================================================================================================
 FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, double E1B_,
-				     Handle<FitComparator> fitComp_, double noiseRatioCutoff, int minTSlices) 
-  : fits(data_), fitComp(fitComp_), T(T_), E1A(E1A_), E1B(E1B_) {
+    Handle<FitComparator> fitComp_, double noiseRatioCutoff, int minTSlices) 
+: fits(data_), fitComp(fitComp_), T(T_), E1A(E1A_), E1B(E1B_) {
 
   EnsemVectorReal y = (fits.getEnsemData()).getYData();
   vector<double> t_temp = (fits.getEnsemData()).getXData();
 
   //exclude noisy points
   //  (fits.getEnsemData()).hideDataAboveYErrRat(noiseRatioCutoff); 
- 
+
   vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
   int tlow = all_tslices[0];
 
@@ -977,15 +993,15 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
 
   //loop over tmin values
   /*  for(int i = 0; i < tslices.size(); i++){
-    if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
+      if( (tmax - int(tslices[i]) + 1.1 ) >= minTSlices){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-      
+
       stringstream s; s << "tmin= " << int(tslices[i]) << " tmax= " << tmax;
       fits.addFit(s.str(), ff);
       cout << "avg fit done for tmin = " << int(tslices[i]) << endl;
-    } 
-  }// next t min
-  */
+      } 
+      }// next t min
+      */
 
 
   // MAKE THIS A LOOP OVER BOTH tmin, tmax IN SOME WAY !!!!!!!
@@ -997,14 +1013,14 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
 
     for(int i = 0; i < tslices.size(); i++){
       if( (tmax_local - int(tslices[i]) + 1.1 ) >= minTSlices){ 
-	(fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
-	
-	stringstream s; s << "tmin= " << int(tslices[i]) << " tmax= " << tmax_local;
-	fits.addFit(s.str(), ff);
-	cout << "avg fit done for tmin = " << int(tslices[i]) << ", tmax = " << tmax_local << endl;
+        (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 );   //timeslices are ordered, so this is safe
+
+        stringstream s; s << "tmin= " << int(tslices[i]) << " tmax= " << tmax_local;
+        fits.addFit(s.str(), ff);
+        cout << "avg fit done for tmin = " << int(tslices[i]) << ", tmax = " << tmax_local << endl;
       } 
     }// next t min
-    
+
   }//next tmax
 
 
@@ -1023,7 +1039,7 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
   }
   else{
     JackFit& bestFit = fits.getFit(best);
-    
+
     Aforw =  bestFit.getJackFitParValue("Aforw");
     Aback =  bestFit.getJackFitParValue("Aback");
     CA =  bestFit.getJackFitParValue("CA");    
@@ -1033,8 +1049,8 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
     chisq = bestFit.getJackChisq();
     nDoF = bestFit.getNDoF();
     best_fit_name = best.fitname;
-    
-    
+
+
     //write out a summary of the fits
     int count = 1;
     map<double, FitDescriptor> list = fits.getFitList(*fitComp);
@@ -1048,26 +1064,26 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
       ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
       ss << setw(12) << fixed << setprecision(3) << Q <<"|";
       ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-      
+
       if(count == rank){ ss << "*";}else{ ss << " ";}
       ss << " Aforw=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("Aforw") << " +/-" <<  setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParError("Aforw");   
       ss << " Aback=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("Aback") << " +/-" <<  setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParError("Aback");
       ss << " CA   =" << setw(8) << fixed << setprecision(4)  << thisFit.getAvgFitParValue("CA")    << " +/-" << thisFit.getAvgFitParError("CA");
       ss << " CB   =" << setw(8) << fixed << setprecision(4)  << thisFit.getAvgFitParValue("CB")    << " +/-" << thisFit.getAvgFitParError("CB");
       ss << " E2   =" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("E2")    << " +/-" <<  setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParError("E2");
-      
+
       ss << endl;
       count++;
     } 
     fit_summary = ss.str();
-    
+
     //make the plot
     //ConstTimesExp expWeight(mass_0 / mass_0 , 0.0*mass_0);
     One one(E2);
 
     stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
     //lab << "; m=" << fixed << setprecision(4) << toDouble(mean(mass_0)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(mass_0)));
-    
+
     //axis_plot = bestFit.makeJackFitPlotAxis(expWeight, 0.0, double(T), lab.str() );
     axis_plot = bestFit.makeJackFitPlotAxis(one, 0.0, double(T), lab.str() );
 
@@ -1082,53 +1098,65 @@ FitCorrelatorFinT::FitCorrelatorFinT(EnsemData data_, int T_, double E1A_, doubl
 FitConst::FitConst(EnsemData data_, int tmin_, int tmax_)
   : fits(data_), tmin(tmin_), tmax(tmax_){
 
-  EnsemVectorReal y = (fits.getEnsemData()).getYData();
-  vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
-  int tlow = all_tslices[0];
-  int thigh = all_tslices[ all_tslices.size() - 1 ]  ;
-  if(tmin < tlow){ cerr << "tmin outside measured range" << endl; exit(1); } 
-  if(tmax > thigh){ cerr << "tmax outside measured range" << endl; exit(1); } 
+    EnsemVectorReal y = (fits.getEnsemData()).getYData();
+    vector<double> all_tslices = (fits.getEnsemData()).getAllXData();
+    int tlow = all_tslices[0];
+    int thigh = all_tslices[ all_tslices.size() - 1 ]  ;
+    if(tmin < tlow){ cerr << "tmin outside measured range" << endl; exit(1); } 
+    if(tmax > thigh){ cerr << "tmax outside measured range" << endl; exit(1); } 
 
 
-  Const* tmp1 = new Const();
-  Handle<FitFunction> ff( tmp1 );
+    Const* tmp1 = new Const();
+    Handle<FitFunction> ff( tmp1 );
 
 
-  //use the value of the correlator at the smallest time to set start value for c
-  double c = toDouble(mean( peekObs(y, 0) ));
-  ff->setDefaultParValue("a", c);   ff->setDefaultParError("a", 0.5*c);
+    //use the value of the correlator at the smallest time to set start value for c
+    double c = toDouble(mean( peekObs(y, 0) ));
+    ff->setDefaultParValue("a", c);   ff->setDefaultParError("a", 0.5*c);
 
 
-  (fits.getEnsemData()).showAll();
-  (fits.getEnsemData()).hideDataBelowX( tmin - 0.1 );
-  (fits.getEnsemData()).hideDataAboveX( tmax + 0.1 );
-	
-  stringstream s; s << "tmin= " << tmin << " tmax= " << tmax;
-  fits.addFit(s.str(), ff);
-  cout << "avg fit done for " << s.str() << endl;
+    (fits.getEnsemData()).showAll();
+    (fits.getEnsemData()).hideDataBelowX( tmin - 0.1 );
+    (fits.getEnsemData()).hideDataAboveX( tmax + 0.1 );
 
-  //stupid overkill ...
+    stringstream s; s << "tmin= " << tmin << " tmax= " << tmax;
+    fits.addFit(s.str(), ff);
+    cout << "avg fit done for " << s.str() << endl;
+
+    //stupid overkill ...
+
+    // <CJS>  
+    //
+    //  this is a one off, assume the avg fit sits in last
+    //  slot of the vector, this whole jackknife business 
+    //  is far far to messy -- it took me 10 min to figure out 
+    //  how to even get to this information 
+    double foom = (fits.fits.end() -1)->getAvgFitParValue(0); 
+    double fooe = (fits.fits.end() -1)->getAvgFitParError(0); 
+
+    std::cout << "avg fit result c = " << foom << " err " << fooe << std::endl;
+
+    // </CJS>
+
+    FitComparator* fitComp = new CompareFitsByChisqPerNDoF(); 
+
+    FitDescriptor best_avg = fits.getBestFit(*fitComp);
+    int rank;   
+    FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
 
 
-  FitComparator* fitComp = new CompareFitsByChisqPerNDoF(); 
-  
-  FitDescriptor best_avg = fits.getBestFit(*fitComp);
-  int rank;   
-  FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
+    JackFit& bestFit = fits.getFit(best);
+    constant =  bestFit.getJackFitParValue("a");
+    chisq = bestFit.getJackChisq();
+    nDoF = bestFit.getNDoF();
 
 
-  JackFit& bestFit = fits.getFit(best);
-  constant =  bestFit.getJackFitParValue("a");
-  chisq = bestFit.getJackChisq();
-  nDoF = bestFit.getNDoF();
-    
-    
-  //make the plot
-  One one(constant);
-  stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-  axis_plot = bestFit.makeJackFitPlotAxis(one, tmin - 3, tmax + 3, lab.str() );
+    //make the plot
+    One one(constant);
+    stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+    axis_plot = bestFit.makeJackFitPlotAxis(one, tmin - 3, tmax + 3, lab.str() );
 
-  delete fitComp;
+    delete fitComp;
 
-};
+  };
 

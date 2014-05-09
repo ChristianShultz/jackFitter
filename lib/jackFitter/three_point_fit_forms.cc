@@ -6,7 +6,7 @@
 
  * Creation Date : 09-11-2012
 
- * Last Modified : Fri 18 Oct 2013 02:42:25 PM EDT
+ * Last Modified : Wed 16 Apr 2014 12:55:12 PM EDT
 
  * Created By : shultz
 
@@ -471,7 +471,7 @@ namespace
       function_factory(const std::string &s, const int tf, const int ti)
       {
         std::map<std::string, ADAT::Handle<FitFunction> (*)(const int, const int) > func_map;  
-        func_map["const"] =  &createThreePointConstant;
+        func_map["const"] =  createThreePointConstant;
         func_map["dExpPC"] = createThreePointDoubleExpPlusConst;
         func_map["symExpPC"] = createThreePointSymmetricExpPlusConst; 
         func_map["leftExpPC"] = createThreePointLeftExpPlusConst;
@@ -507,8 +507,8 @@ namespace
 
         ENSEM::Real eC, eEl, eEh, eAl, eAh, et; 
 
-        // pick C as the midpoint
-        tmp = double(t_f + t_i)/2.; 
+        // pick C as the midpoint of the fit range
+        tmp = double(t_f - t_i)/2. + t_i; 
         eC = ENSEM::mean(data.getYUsingNearestX(tmp)); 
 
         // log of derivative to get NEGATIVE mass, 

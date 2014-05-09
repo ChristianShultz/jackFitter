@@ -6,7 +6,7 @@
 
  * Creation Date : 01-02-2013
 
- * Last Modified : Wed 16 Oct 2013 06:27:29 PM EDT
+ * Last Modified : Tue 06 May 2014 11:30:11 AM EDT
 
  * Created By : shultz
 
@@ -67,7 +67,7 @@ int main(int argc , char * argv[])
   if ( isrl == 0 ) 
     corr = ENSEM::real(corr2) ; 
   else
-    corr = ENSEM::real(corr2) ; 
+    corr = ENSEM::imag(corr2) ; 
 
   std::cout << "read file " << dat << std::endl;
   int nb = peekObs(corr,0).size();
