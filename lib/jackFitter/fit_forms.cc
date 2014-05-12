@@ -378,7 +378,11 @@ void FitZ::saveFitPlot(string filename){
 
 //***********************************************************************
 
-FitVersusT0::FitVersusT0(EnsemData data_, Handle<FitComparator> fitComp_) : fits(data_), fitComp(fitComp_){
+// CJS -- yet another rat nest of ineptitude -- you can get a fail in here on multi-t0 fits  
+//        whitespace is free, first unroll this 
+FitVersusT0::FitVersusT0(EnsemData data_, Handle<FitComparator> fitComp_) 
+  : fits(data_), fitComp(fitComp_)
+{
 	
   vector<double> tslices = (fits.getEnsemData()).getXData();
   int tmax = *tslices.rbegin();
@@ -408,101 +412,152 @@ FitVersusT0::FitVersusT0(EnsemData data_, Handle<FitComparator> fitComp_) : fits
   
   //find the best constant fit
   FitDescriptor bestConst = fits.getBestFit(*fitComp);
-  JackFit bestConstFit = fits.getFit( bestConst );
-  
+
+ // CJS unrolled this to make it human readable  
   int tminConst;
   vector<bool> active = bestConst.activeData;
   for(int i = 0; i < active.size(); i++)
-    { if(active[i]){tminConst = int(all_tslices[i]); break;}; }
+    { 
+      if(active[i])
+      {
+        tminConst = int(all_tslices[i]); 
+        break;
+      }
+    }
   
-  //  cout << "did the constant fits" << endl;
-  // cout << "tminConst = " << tminConst << endl;
 
+  // CJS removed extra brackets 
   //reinstate the data
   for(int i = 0; i < tslices.size(); i++)
-    {(fits.getEnsemData()).showDatumByX( tslices[i] );}
-  
-  //cout << "turned all the data back on" << endl;
+    (fits.getEnsemData()).showDatumByX( tslices[i] );
+
+
 
   //=======================
   // const_plus_exp fits
   //=======================
   ConstPlusExp* tmp2 = new ConstPlusExp();
   Handle<FitFunction> constPlusExp(tmp2);
-  
-  constPlusExp->setDefaultParValue("a", bestConstFit.getAvgFitParValue("a") ); 
-  constPlusExp->setDefaultParError("a", 5.0*bestConstFit.getAvgFitParError("a"));
-  
+
+  if( bestConst.fitname != "FAILED" )
+  {
+    // CJS added guard for failure and moved this guy
+    JackFit bestConstFit = fits.getFit( bestConst );
+
+    constPlusExp->setDefaultParValue("a", bestConstFit.getAvgFitParValue("a") ); 
+    constPlusExp->setDefaultParError("a", 5.0*bestConstFit.getAvgFitParError("a"));
+    constPlusExp->setDefaultParError("b", 10.0*bestConstFit.getAvgFitParError("a") );
+  }
+  else
+  {
+    // CJS added these default pars in case of const failure 
+    constPlusExp->setDefaultParValue("a", toDouble(mean(start)) ); 
+    constPlusExp->setDefaultParError("a", toDouble(sqrt(variance(start))));
+    constPlusExp->setDefaultParError("b", 5.0*toDouble(sqrt(variance(start))) );
+  }
+
   constPlusExp->setDefaultParValue("b", 0.0);
-  constPlusExp->setDefaultParError("b", 10.0*bestConstFit.getAvgFitParError("a") );
   constPlusExp->setDefaultParValue("exp_mass", 0.1);
   constPlusExp->setDefaultParError("exp_mass", 0.1);
-  
+
   //limit the exponential mass to positive values
   constPlusExp->setParamLowerLimit("exp_mass", 0.0);
-  
+
   //loop over tmin values
   for(int i = 0; i < tslices.size(); i++){
     if( ((tmax - int(tslices[i]) + 1.1 ) >= 4 ) && (tslices[i] + 0.1 < tminConst ) ){ 
       (fits.getEnsemData()).hideDataBelowX( tslices[i] - 0.1 ); 
-      
+
       stringstream s; s << "constant_plus_exp tmin= " << int(tslices[i]);
       fits.addFit(s.str(), constPlusExp);
     } 
   }// next t min
-  
+
+  // CJS -- doesnt understand JJD's aversion to whitespace 
   //get the best jack fit
-  int rank;  FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
-  
-  //cout << "found the best fit" << endl;
-
-  if( (best.ff).operator->() == constPlusExp.operator->() ){fit_type = "constant_plus_exp";}
-  else{fit_type = "constant";};
-  JackFit& bestFit = fits.getFit(best);
-  
-  //cout << "got a ref to the best fit" << endl;
-
-  a = bestFit.getJackFitParValue("a");
-  
-  //  cout << "extracted the fit value a= " << toDouble(mean(a)) << endl;
-
-  chisq = bestFit.getJackChisq();
-  nDoF = bestFit.getNDoF();
-  best_fit_name = best.fitname;
-  
+  int rank;  
+  FitDescriptor best = fits.getBestJackFit(*fitComp, rank);
 
 
-  //write out a summary of the fits
-  int count = 1;
-  map<double, FitDescriptor> list = fits.getFitList(*fitComp);
-  stringstream ss; 
-  ss << "                                   | chisq/nDoF |     Q      |  fitCrit   | " << endl;
-  for( map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++){
-    JackFit& thisFit = fits.getFit(p->second);
-    double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
-    double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
-    ss << setw(35) <<(p->second).fitname << "|";
-    ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
-    ss << setw(12) << fixed << setprecision(3) << Q <<"|";
-    ss << setw(12) << scientific << setprecision(3) << p->first << "|";
-    
-    if(count == rank){ ss << "*";}else{ ss << " ";}
-    ss << " a=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("a") << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("a");
-    if( ((p->second).ff).operator->() == constPlusExp.operator->() ){
-      ss << ", b=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("b") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("b");
-      ss << ", exp_mass=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("exp_mass") << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("exp_mass");
-    }
-    ss << endl;count++;
+  if( (best.ff).operator->() == constPlusExp.operator->() )
+    fit_type = "constant_plus_exp";
+  else
+    fit_type = "constant";
+
+  // CJS guard for failed here 
+  if( best.fitname != "FAILED" )
+  {
+    JackFit& bestFit = fits.getFit(best);
+
+    a = bestFit.getJackFitParValue("a");
+    chisq = bestFit.getJackChisq();
+    nDoF = bestFit.getNDoF();
+    best_fit_name = best.fitname;
+
+
+
+    //write out a summary of the fits
+    int count = 1;
+    map<double, FitDescriptor> list = fits.getFitList(*fitComp);
+    stringstream ss; 
+    ss << "                                   | chisq/nDoF |     Q      |  fitCrit   | " << endl;
+    for( map<double, FitDescriptor>::reverse_iterator p = list.rbegin(); p != list.rend(); p++)
+    {
+      JackFit& thisFit = fits.getFit(p->second);
+      double chisq_per_ndof = thisFit.getAvgChisq() / thisFit.getNDoF();
+      double Q = statQ( thisFit.getAvgChisq() , thisFit.getNDoF() );
+      ss << setw(35) <<(p->second).fitname << "|";
+      ss << setw(12) << fixed << setprecision(3) << chisq_per_ndof <<"|";
+      ss << setw(12) << fixed << setprecision(3) << Q <<"|";
+      ss << setw(12) << scientific << setprecision(3) << p->first << "|";
+
+      if(count == rank)
+      { 
+        ss << "*";
+      }
+      else
+      { 
+        ss << " ";
+      }
+
+      // CJS -- reformat source, no change to output -- I HATE THIS!!!!
+      ss << " a=" << setw(8) << fixed << setprecision(4) << thisFit.getAvgFitParValue("a") 
+        << " +/-" <<  setw(8) << fixed <<setprecision(4) << thisFit.getAvgFitParError("a");
+
+      if( ((p->second).ff).operator->() == constPlusExp.operator->() )
+      {
+        ss << ", b=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("b") 
+          << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("b");
+        ss << ", exp_mass=" << setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParValue("exp_mass") 
+          << " +/-" <<  setw(6) << fixed << setprecision(3) << thisFit.getAvgFitParError("exp_mass");
+      }
+
+      ss << endl;
+      count++;
+    } 
+
+    fit_summary = ss.str();
+
+
+    //make the plot
+    stringstream lab; 
+    lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) 
+      << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
+    lab << "; a=" << fixed << setprecision(4) << toDouble(mean(a)) 
+      << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(a)));
+
+    axis_plot = bestFit.makeJackFitPlotAxis(0.0, double(tmax + 1.5), lab.str() );
   } 
-  fit_summary = ss.str();
-
-
-  //make the plot
-  stringstream lab; lab << "\\gx\\sp2\\ep/N\\sbdof\\eb=" << setprecision(2) << bestFit.getJackChisq() << "/" << bestFit.getNDoF(); 
-  lab << "; a=" << fixed << setprecision(4) << toDouble(mean(a)) << "\\+-" <<  setprecision(4) << toDouble(sqrt(variance(a)));
-  
-  axis_plot = bestFit.makeJackFitPlotAxis(0.0, double(tmax + 1.5), lab.str() );
-
+  else
+  {
+    // failed 
+    a = start; 
+    chisq = 1000;
+    nDoF = 10;
+    best_fit_name = best.fitname;
+    fit_summary = std::string("YOU LOSE"); 
+    axis_plot = fit_summary; 
+  }
 
 };
 
