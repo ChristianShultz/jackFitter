@@ -79,7 +79,10 @@ am_libjackFitter_a_OBJECTS = ensem_data.$(OBJEXT) \
 	ensem_ensem_chisq_fitter.$(OBJEXT) fit_correlators.$(OBJEXT) \
 	fit_forms.$(OBJEXT) jackknife_fitter.$(OBJEXT) \
 	linear_algebra.$(OBJEXT) multi_princorr_fit.$(OBJEXT) \
-	plot.$(OBJEXT) three_point_fit_forms.$(OBJEXT)
+	plot.$(OBJEXT) three_point_fit_bias_functions.$(OBJEXT) \
+	three_point_fit.$(OBJEXT) \
+	three_point_fit_compatators.$(OBJEXT) \
+	three_point_xml.$(OBJEXT)
 libjackFitter_a_OBJECTS = $(am_libjackFitter_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -191,18 +194,43 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CXXFLAGS = -I@top_srcdir@/lib		\
-		@CXXFLAGS@ @ADAT_CXXFLAGS@ @ITPP_CXXFLAGS@
+								@CXXFLAGS@  @ADAT_CXXFLAGS@ @ITPP_CXXFLAGS@ 
 
 
-#jackFitter
-nobase_include_HEADERS = jackFitter/ensem_data.h jackFitter/ensem_ensem_chisq_fitter.h jackFitter/fit_correlators.h jackFitter/fit_forms.h jackFitter/jackknife_fitter.h jackFitter/linear_algebra.h jackFitter/multi_princorr_fit.h jackFitter/plot.h jackFitter/three_point_fit_forms.h
-#
-#Library
-#
+#utils
+nobase_include_HEADERS = \
+													 jackFitter/ensem_data.h    \
+													 jackFitter/ensem_ensem_chisq_fitter.h    \
+													 jackFitter/fit_correlators.h    \
+													 jackFitter/fit_forms.h    \
+													 jackFitter/jackknife_fitter.h    \
+													 jackFitter/linear_algebra.h    \
+													 jackFitter/multi_princorr_fit.h    \
+													 jackFitter/plot.h    \
+													 jackFitter/three_point_fit_bias_functions.h    \
+													 jackFitter/three_point_fit_compatators.h    \
+													 jackFitter/three_point_fit_forms.h    \
+													 jackFitter/three_point_fit_functions.h    \
+													 jackFitter/three_point_fit.h    \
+													 jackFitter/three_point_xml.h   
+
+
+# the lib
 lib_LIBRARIES = libjackFitter.a
+libjackFitter_a_SOURCES = \
+													jackFitter/ensem_data.cc    \
+													jackFitter/ensem_ensem_chisq_fitter.cc    \
+													jackFitter/fit_correlators.cc    \
+													jackFitter/fit_forms.cc    \
+													jackFitter/jackknife_fitter.cc    \
+													jackFitter/linear_algebra.cc    \
+													jackFitter/multi_princorr_fit.cc    \
+													jackFitter/plot.cc    \
+													jackFitter/three_point_fit_bias_functions.cc    \
+													jackFitter/three_point_fit.cc    \
+													jackFitter/three_point_fit_compatators.cc    \
+													jackFitter/three_point_xml.cc    
 
-#jackFitter 
-libjackFitter_a_SOURCES = jackFitter/ensem_data.cc jackFitter/ensem_ensem_chisq_fitter.cc jackFitter/fit_correlators.cc jackFitter/fit_forms.cc jackFitter/jackknife_fitter.cc jackFitter/linear_algebra.cc jackFitter/multi_princorr_fit.cc jackFitter/plot.cc jackFitter/three_point_fit_forms.cc
 all: all-am
 
 .SUFFIXES:
@@ -288,7 +316,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linear_algebra.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/multi_princorr_fit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plot.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/three_point_fit_forms.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/three_point_fit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/three_point_fit_bias_functions.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/three_point_fit_compatators.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/three_point_xml.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -416,19 +447,61 @@ plot.obj: jackFitter/plot.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o plot.obj `if test -f 'jackFitter/plot.cc'; then $(CYGPATH_W) 'jackFitter/plot.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/plot.cc'; fi`
 
-three_point_fit_forms.o: jackFitter/three_point_fit_forms.cc
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_forms.o -MD -MP -MF $(DEPDIR)/three_point_fit_forms.Tpo -c -o three_point_fit_forms.o `test -f 'jackFitter/three_point_fit_forms.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_forms.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_forms.Tpo $(DEPDIR)/three_point_fit_forms.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_forms.cc' object='three_point_fit_forms.o' libtool=no @AMDEPBACKSLASH@
+three_point_fit_bias_functions.o: jackFitter/three_point_fit_bias_functions.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_bias_functions.o -MD -MP -MF $(DEPDIR)/three_point_fit_bias_functions.Tpo -c -o three_point_fit_bias_functions.o `test -f 'jackFitter/three_point_fit_bias_functions.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_bias_functions.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_bias_functions.Tpo $(DEPDIR)/three_point_fit_bias_functions.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_bias_functions.cc' object='three_point_fit_bias_functions.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_forms.o `test -f 'jackFitter/three_point_fit_forms.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_forms.cc
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_bias_functions.o `test -f 'jackFitter/three_point_fit_bias_functions.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_bias_functions.cc
 
-three_point_fit_forms.obj: jackFitter/three_point_fit_forms.cc
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_forms.obj -MD -MP -MF $(DEPDIR)/three_point_fit_forms.Tpo -c -o three_point_fit_forms.obj `if test -f 'jackFitter/three_point_fit_forms.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_forms.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_forms.cc'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_forms.Tpo $(DEPDIR)/three_point_fit_forms.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_forms.cc' object='three_point_fit_forms.obj' libtool=no @AMDEPBACKSLASH@
+three_point_fit_bias_functions.obj: jackFitter/three_point_fit_bias_functions.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_bias_functions.obj -MD -MP -MF $(DEPDIR)/three_point_fit_bias_functions.Tpo -c -o three_point_fit_bias_functions.obj `if test -f 'jackFitter/three_point_fit_bias_functions.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_bias_functions.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_bias_functions.cc'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_bias_functions.Tpo $(DEPDIR)/three_point_fit_bias_functions.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_bias_functions.cc' object='three_point_fit_bias_functions.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_forms.obj `if test -f 'jackFitter/three_point_fit_forms.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_forms.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_forms.cc'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_bias_functions.obj `if test -f 'jackFitter/three_point_fit_bias_functions.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_bias_functions.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_bias_functions.cc'; fi`
+
+three_point_fit.o: jackFitter/three_point_fit.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit.o -MD -MP -MF $(DEPDIR)/three_point_fit.Tpo -c -o three_point_fit.o `test -f 'jackFitter/three_point_fit.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit.Tpo $(DEPDIR)/three_point_fit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit.cc' object='three_point_fit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit.o `test -f 'jackFitter/three_point_fit.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit.cc
+
+three_point_fit.obj: jackFitter/three_point_fit.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit.obj -MD -MP -MF $(DEPDIR)/three_point_fit.Tpo -c -o three_point_fit.obj `if test -f 'jackFitter/three_point_fit.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit.cc'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit.Tpo $(DEPDIR)/three_point_fit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit.cc' object='three_point_fit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit.obj `if test -f 'jackFitter/three_point_fit.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit.cc'; fi`
+
+three_point_fit_compatators.o: jackFitter/three_point_fit_compatators.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_compatators.o -MD -MP -MF $(DEPDIR)/three_point_fit_compatators.Tpo -c -o three_point_fit_compatators.o `test -f 'jackFitter/three_point_fit_compatators.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_compatators.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_compatators.Tpo $(DEPDIR)/three_point_fit_compatators.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_compatators.cc' object='three_point_fit_compatators.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_compatators.o `test -f 'jackFitter/three_point_fit_compatators.cc' || echo '$(srcdir)/'`jackFitter/three_point_fit_compatators.cc
+
+three_point_fit_compatators.obj: jackFitter/three_point_fit_compatators.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_fit_compatators.obj -MD -MP -MF $(DEPDIR)/three_point_fit_compatators.Tpo -c -o three_point_fit_compatators.obj `if test -f 'jackFitter/three_point_fit_compatators.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_compatators.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_compatators.cc'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_fit_compatators.Tpo $(DEPDIR)/three_point_fit_compatators.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_fit_compatators.cc' object='three_point_fit_compatators.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_fit_compatators.obj `if test -f 'jackFitter/three_point_fit_compatators.cc'; then $(CYGPATH_W) 'jackFitter/three_point_fit_compatators.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_fit_compatators.cc'; fi`
+
+three_point_xml.o: jackFitter/three_point_xml.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_xml.o -MD -MP -MF $(DEPDIR)/three_point_xml.Tpo -c -o three_point_xml.o `test -f 'jackFitter/three_point_xml.cc' || echo '$(srcdir)/'`jackFitter/three_point_xml.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_xml.Tpo $(DEPDIR)/three_point_xml.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_xml.cc' object='three_point_xml.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_xml.o `test -f 'jackFitter/three_point_xml.cc' || echo '$(srcdir)/'`jackFitter/three_point_xml.cc
+
+three_point_xml.obj: jackFitter/three_point_xml.cc
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT three_point_xml.obj -MD -MP -MF $(DEPDIR)/three_point_xml.Tpo -c -o three_point_xml.obj `if test -f 'jackFitter/three_point_xml.cc'; then $(CYGPATH_W) 'jackFitter/three_point_xml.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_xml.cc'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/three_point_xml.Tpo $(DEPDIR)/three_point_xml.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='jackFitter/three_point_xml.cc' object='three_point_xml.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o three_point_xml.obj `if test -f 'jackFitter/three_point_xml.cc'; then $(CYGPATH_W) 'jackFitter/three_point_xml.cc'; else $(CYGPATH_W) '$(srcdir)/jackFitter/three_point_xml.cc'; fi`
 install-nobase_includeHEADERS: $(nobase_include_HEADERS)
 	@$(NORMAL_INSTALL)
 	test -z "$(includedir)" || $(MKDIR_P) "$(DESTDIR)$(includedir)"

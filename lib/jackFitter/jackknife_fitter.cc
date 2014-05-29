@@ -30,6 +30,13 @@ struct debug_printer
 };
 
 
+struct debug_printer_mn_user_pars
+{
+  static void print(const std::string &s)
+  {
+    std::cout << s << std::endl;
+  }
+};
 
 
 
@@ -368,16 +375,51 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   //set up the pars
   MnUserParameters upar;
   for(int i = 0; i < ff->getNPars(); i++)
-  { upar.Add(  (ff->getParName(i)).c_str(), startValues[i], startErrors[i]);}
+     upar.Add(  (ff->getParName(i)).c_str(), startValues[i], startErrors[i]);
+
   //fix if required
-  for(int i = 0; i < ff->getNPars(); i++){ if(ff->isParamFixed(i)){upar.Fix(i);}; }
+  for(int i = 0; i < ff->getNPars(); i++) 
+    if(ff->isParamFixed(i))
+      upar.Fix(i);
+
   //limit if required
-  for(int i = 0; i < ff->getNPars(); i++){ 
-    if(ff->isParamUpperLimited(i)){upar.SetUpperLimit(i, ff->getParamUpperLimit(i));};
-    if(ff->isParamLowerLimited(i)){upar.SetLowerLimit(i, ff->getParamLowerLimit(i));};
+  for(int i = 0; i < ff->getNPars(); i++)
+  { 
+    // must set them this way b/c of implementation of set limit 
+    // functions in minuit -- setting upper followed by lower unsets upper
+    if(ff->isParamUpperLimited(i) && ff->isParamLowerLimited(i) )
+      upar.SetLimits(i,ff->getParamLowerLimit(i),ff->getParamUpperLimit(i)); 
+    else if(ff->isParamUpperLimited(i))
+      upar.SetUpperLimit(i, ff->getParamUpperLimit(i));
+    else if(ff->isParamLowerLimited(i))
+      upar.SetLowerLimit(i, ff->getParamLowerLimit(i));
   }
 
-  printer_function<debug_printer>( "MnUserParameters = " + debug_string(upar) ); 
+#if 0 
+  if(bin == 1 )
+  {
+
+    //check limits 
+    for(int i = 0; i < ff->getNPars(); i++)
+    { 
+      if(ff->isParamUpperLimited(i))
+        std::cout << ff->getParName(i) << " u " << ff->getParamUpperLimit(i) << std::endl;
+      if(ff->isParamLowerLimited(i))
+        std::cout << ff->getParName(i) << " l " << ff->getParamLowerLimit(i) << std::endl;
+    }
+    printer_function<debug_printer_mn_user_pars>( "MnUserParameters = " + debug_string(upar) ); 
+    const std::vector<MinuitParameter> &p = upar.Parameters(); 
+    std::vector<MinuitParameter>::const_iterator it; 
+    for(it = p.begin(); it != p.end(); ++it)
+    {
+      std::cout << it->GetName() << " : \n"
+        << "v " << it->Value() 
+        <<"\ne " << it->Error() 
+        << "\nl " << it->LowerLimit()
+        <<"\nu " << it->UpperLimit() << std::endl;  
+    }
+  }
+#endif 
 
   //  cout << "MnUserParameters = " << endl << upar << endl;
 
@@ -403,10 +445,10 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
   bool fitSuccess = min.IsValid();
 
 
-//  if(fitSuccess)  
-//    printer_function<debug_printer>( "FunctionMinimum = " + debug_string(min) ); 
-//  else
-//    printer_function<debug_printer>( "(failed) FunctionMinimum = " + debug_string(min) ); 
+  //  if(fitSuccess)  
+  //    printer_function<debug_printer>( "FunctionMinimum = " + debug_string(min) ); 
+  //  else
+  //    printer_function<debug_printer>( "(failed) FunctionMinimum = " + debug_string(min) ); 
 
 
 
@@ -420,10 +462,12 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
 
 
   //dump the result
-  if(bin == -1){
+  if(bin == -1)
+  {
     avgParValues.resize(ff->getNPars());
     avgParErrors.resize(ff->getNPars());
-    for(int i=0; i < ff->getNPars(); i++){ 
+    for(int i=0; i < ff->getNPars(); i++)
+    { 
       avgParValues[i] = min.UserState().Value(i);
       avgParErrors[i] = min.UserState().Error(i);
     }
@@ -437,12 +481,15 @@ bool JackFit::runBinFit(int bin, vector<double> startValues, vector<double> star
     // cout << "mass_0 = " << avgParValues[0] << endl;
     //
   }
-  else{
+  else
+  {
     for(int i = 0; i < ff->getNPars(); i++)
-    {pokeEnsem(scaledJackParValues[i] , Real(min.UserState().Value(i)) , bin);}
+      pokeEnsem(scaledJackParValues[i] , Real(min.UserState().Value(i)) , bin);
+
     jackChisqs[bin] = min.Fval();
     jackFitSuccess[bin] = fitSuccess;
-    stringstream report; report << min;
+    stringstream report; 
+    report << min;
     jackFitReports[bin] = report.str();
   }
 
@@ -959,6 +1006,8 @@ FitDescriptor JackFitLog::getBestFit(FitComparator& fitComp){
 FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
 {
 
+  // CJS -- also why would you ever think calling this list is a good idea
+  //        a list is a stl type, this is just foolish 
   map<double, FitDescriptor> list;
   list = getFitList(fitComp);
 
@@ -967,6 +1016,13 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
 
   // CJS -- pretty sure this works on the sorting algorithm built
   // into the stl map and may break if stl changes -- arguably stupid
+  //
+  //    if you dont understand that comment, the map uses a strict weak ordering 
+  //    condition based on (in this case) the value of the double, the key (a double) 
+  //    is a condition that we want to maximize so the best guy sits at the end of 
+  //    the map.. this is rather stupid and someone (the original creator!!) should rewrite 
+  //    this to make it more transparent to humans 
+  //
   if(list.begin() != list.end())
   {
     while((!success))
@@ -982,6 +1038,23 @@ FitDescriptor JackFitLog::getBestJackFit(FitComparator& fitComp, int& rank)
       {
         //write a log message ?
         cout << thisFit.fitname << "  " << bestFit.getNFailedFits()  <<" bins failed" << endl;
+
+        // CJS -- I want to know what the fit report says if it fails 
+#if 1 
+        std::cout << "map size " << list.size() << std::endl; 
+        int first_fail; 
+        for(unsigned int k = 0; k < bestFit.jackFitSuccess.size(); ++k)
+          if( !!! bestFit.jackFitSuccess[k] )
+          {
+            first_fail  = k; 
+            break; 
+          }
+
+        std::cout << "****** First Failed Bin Report ******" << std::endl;
+        std::cout << bestFit.jackFitReports[first_fail] << std::endl;
+        std::cout << "*************************************" << std::endl;
+#endif 
+
       }
       else if(bestFit.getJackChisq() > 0)
       {
