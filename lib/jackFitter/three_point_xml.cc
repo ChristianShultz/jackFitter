@@ -6,7 +6,7 @@
 
 * Creation Date : 28-05-2014
 
-* Last Modified : Wed 28 May 2014 10:19:10 AM EDT
+* Last Modified : Thu 24 Jul 2014 04:51:49 PM EDT
 
 * Created By : shultz
 
@@ -75,6 +75,7 @@ void read(ADATXML::XMLReader &xml, const std::string &path, ThreePointComparator
   doXMLRead(ptop,"tlow",prop.tlow,__PRETTY_FUNCTION__);
   doXMLRead(ptop,"thigh",prop.thigh,__PRETTY_FUNCTION__); 
   doXMLRead(ptop,"minTSlice",prop.minTSlice,__PRETTY_FUNCTION__);
+  doXMLRead(ptop,"SVCutOff",prop.SVCutOff,__PRETTY_FUNCTION__);
 }
 
 
@@ -129,6 +130,7 @@ void read(ADATXML::XMLReader &xml, const std::string &path, FitParValue::ParElem
   doXMLRead(ptop,"error",e.defaultParError,__PRETTY_FUNCTION__,def); 
   doXMLRead(ptop,"llimit",e.paramLowerLimit,__PRETTY_FUNCTION__,def); 
   doXMLRead(ptop,"ulimit",e.paramUpperLimit,__PRETTY_FUNCTION__,def); 
+  doXMLRead(ptop,"fix",e.fixParameter,__PRETTY_FUNCTION__,def); 
 
 } 
 

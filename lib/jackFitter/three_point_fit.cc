@@ -6,7 +6,7 @@
 
  * Creation Date : 28-05-2014
 
- * Last Modified : Thu 29 May 2014 11:21:03 AM EDT
+ * Last Modified : Thu 24 Jul 2014 04:56:09 PM EDT
 
  * Created By : shultz
 
@@ -87,6 +87,8 @@ namespace
       const int ti)
   {
 
+    std::cout << __func__ << " tf " << tf << " ti " << ti << std::endl;
+
     // A1exp(-E1(tf-t)) + A2exp(-E2(t-ti)) + C -- C is the formfactor
     AxisPlot plot(pt); 
     ENSEM::EnsemReal C, A1,A2,E1,E2,dum; 
@@ -103,6 +105,13 @@ namespace
     dA2 = ENSEM::toDouble(ENSEM::mean(A2));
     dE1 = ENSEM::toDouble(ENSEM::mean(E1));
     dE2 = ENSEM::toDouble(ENSEM::mean(E2)); 
+
+    double eC,eA1,eA2,eE1,eE2;
+    eC  = sqrt(ENSEM::toDouble(ENSEM::variance(C )));
+    eA1 = sqrt(ENSEM::toDouble(ENSEM::variance(A1))); 
+    eA2 = sqrt(ENSEM::toDouble(ENSEM::variance(A2)));
+    eE1 = sqrt(ENSEM::toDouble(ENSEM::variance(E1)));
+    eE2 = sqrt(ENSEM::toDouble(ENSEM::variance(E2))); 
 
     std::vector<double> m,mp,mm, time; 
     double min, max, mean,var, tmp;
@@ -199,19 +208,19 @@ namespace
 
 
     std::stringstream lab;
-    lab << "FF = " << std::setprecision(4) << dC;
+    lab << "FF = " << std::setprecision(4) << dC << " +/- " << eC;
     plot.addLabel(tf+1,0.5*unit + min,lab.str(),3,0.8);
     lab.str("");
-    lab << "A1 = " << std::setprecision(4) << dA1;
+    lab << "A1 = " << std::setprecision(4) << dA1 << " +/- " << eA1;
     plot.addLabel(tf+1,1.5*unit + min,lab.str(),4,0.8);
     lab.str("");
-    lab << "E1 = " << std::setprecision(4) << dE1;
+    lab << "E1 = " << std::setprecision(4) << dE1 << " +/- " << eE1;
     plot.addLabel(tf+1,2.5*unit + min,lab.str(),4,0.8);
     lab.str("");
-    lab << "A2 = " << std::setprecision(4) << dA2;
+    lab << "A2 = " << std::setprecision(4) << dA2 << " +/- " << eA2;
     plot.addLabel(tf+1,3.5*unit + min,lab.str(),5,0.8);
     lab.str("");
-    lab << "E2 = " << std::setprecision(4) << dE2;
+    lab << "E2 = " << std::setprecision(4) << dE2 << " +/- " << eE2;
     plot.addLabel(tf+1,4.5*unit + min,lab.str(),5,0.8);
 
     return plot.getAxisPlotString(); 
@@ -503,6 +512,12 @@ namespace
         {
           func->setParamUpperLimit(ptr->parname,ptr->paramUpperLimit.value); 
         }
+        if(ptr->fixParameter.use)
+        {
+          // overwrite here!!!
+          func->setDefaultParValue(ptr->parname,ptr->fixParameter.value); 
+          func->fixParam(ptr->parname); 
+        }
       }
     }
 
@@ -533,7 +548,7 @@ namespace
           update_fit_function(func,fitParVals); 
         }
 
-#if 0
+#if 1
         std::cout << __func__ << ": "  << func->getFitType() << " start pars\n"
           << "***************************************************************" 
           << std::endl; 
@@ -800,7 +815,7 @@ FitThreePoint::FitThreePoint(EnsemData data,
 
     AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
 
-    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,m_best_fit_name,t_f, t_i);
+    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,m_best_fit_name,t_high, t_low);
 
   }// close if ! failed
 

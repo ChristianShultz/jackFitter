@@ -19,6 +19,7 @@ struct ThreePointComparatorProps_t
   int tlow;
   int thigh; // the fit range
   int minTSlice; 
+  double SVCutOff; // = 1e-6 on default 
 };
 
 std::string toString(const ThreePointComparatorProps_t &);
@@ -46,6 +47,7 @@ struct FitParValue
     elem defaultParError;
     elem paramLowerLimit; 
     elem paramUpperLimit; 
+    elem fixParameter; 
   };
 
   
