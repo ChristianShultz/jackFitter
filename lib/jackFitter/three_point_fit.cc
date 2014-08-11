@@ -6,7 +6,7 @@
 
  * Creation Date : 28-05-2014
 
- * Last Modified : Thu 24 Jul 2014 04:56:09 PM EDT
+ * Last Modified : Thu 24 Jul 2014 05:00:15 PM EDT
 
  * Created By : shultz
 
@@ -561,6 +561,7 @@ namespace
             << " +/- " << func->getDefaultParError(*it)
             <<"\n    llimit -> " << func->getParamLowerLimit(*it)
             <<"\n    ulimit -> " << func->getParamUpperLimit(*it)
+            <<"\n    fixed  -> " << func->isParamFixed(*it)
             <<"\n" << std::endl;
         }
 #endif
