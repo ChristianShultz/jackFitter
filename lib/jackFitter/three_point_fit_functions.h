@@ -40,10 +40,10 @@ struct ThreePointDoubleExpPlusConst : public FitFunction
     : FitFunction(5) , m_tf(tf) , m_ti(ti)
   { 
     setParName(0,"C");
-    setParName(1,"A1");
-    setParName(2,"E1");
-    setParName(3,"A2");
-    setParName(4,"E2");
+    setParName(1,"Ar");
+    setParName(2,"Er");
+    setParName(3,"Al");
+    setParName(4,"El");
 
     // CJS -- tuning this for 743 
     // setParamLowerLimit("E1",0.0); 
@@ -141,5 +141,39 @@ struct ThreePointRightExpPlusConst : public FitFunction
   double m_ti;
 
 };
+
+template<int N> 
+struct LinearSumExp : public FitFunction
+{
+  LinearSumExp(void) 
+    : FitFunction( 3*N )
+  {
+    for(int i = 0; i < N; ++i)
+    {
+      std::stringstream ss; 
+      std::string idx; 
+      ss << i; 
+      idx = ss.str(); 
+      int j = 3*i; 
+      setParName(j,"E" + idx); 
+      setParName(j + 1, "Z" + idx + "l");
+      setParName(j + 2, "Z" + idx + "r"); 
+    }
+  }
+
+  std::string getFitType(void) const {return std::string("LinearSumExp");}
+
+  double operator()(const std::vector<double> &pars, double t) const 
+  {
+    double sum = 0; 
+    for(int i =0; i < N; ++i)
+    {
+      int j = 3*i; 
+      sum += exp(-t * pars[j]) * pars[j+1] *pars[j+2]; 
+    }
+    return sum; 
+  }
+};
+
 
 #endif /* THREE_POINT_FIT_FUNCTIONS_H */

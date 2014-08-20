@@ -128,7 +128,7 @@ int FitFunction::getParNum(string name) const {
   for(int i =0 ; i < nPars; i++){
     if(parNames[i] == name){found = true; pos = i; break;}
   }
-  if(!found){ cerr << "no such parameter" << endl; exit(1);}
+  if(!found){ cerr << "no such parameter (" << name << ")" << endl; exit(1);}
   return pos;
 }
 

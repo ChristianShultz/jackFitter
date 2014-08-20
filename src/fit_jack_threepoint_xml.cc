@@ -6,7 +6,7 @@
 
  * Creation Date : 01-02-2013
 
- * Last Modified : Mon 11 Aug 2014 05:07:57 PM EDT
+ * Last Modified : Sun 17 Aug 2014 03:21:00 PM EDT
 
  * Created By : shultz
 
@@ -131,6 +131,7 @@ int main(int argc , char * argv[])
     ENSEM::read(mXMLStruct.correlator,corr); 
   }
 
+
   std::cout << "read file " << mXMLStruct.correlator << std::endl;
   int nb = peekObs(corr,0).size();
   std::cout << "bins = " << nb << std::endl;
@@ -139,7 +140,15 @@ int main(int argc , char * argv[])
   // make the time 
   std::vector<double> time;
   for(int t = 0; t < corr.numElem(); ++t)
+  {
     time.push_back(double(t));
+
+    double foo = ENSEM::toDouble( ENSEM::mean( ENSEM::peekObs(corr,t))); 
+    double foov = ENSEM::toDouble( ENSEM::variance( ENSEM::peekObs(corr,t))); 
+    std::cout << t << "  " << foo << " pm " << foov << std::endl; 
+  }
+
+  std::cout << std::endl;
 
   std::cout << "using SVCutOff " << mXMLStruct.threePointProps.SVCutOff << std::endl;
 
@@ -166,7 +175,12 @@ int main(int argc , char * argv[])
   //
   fit.saveFitPlot( mXMLStruct.correlator + std::string(".fit.ax") ) ; 
 
-  std::string grrr = mXMLStruct.correlator + std::string(".summary.ax"); 
+  std::string gr = mXMLStruct.correlator + std::string(".fitComp.ax"); 
+  std::ofstream fooboo (gr.c_str() ); 
+  fooboo << fit.getFitPlotStringWithComponents(); 
+  fooboo.close(); 
+
+  std::string grrr = mXMLStruct.correlator + std::string(".fit.summary"); 
   std::ofstream out ( grrr.c_str() ) ; 
   out << fit.getFitSummary(); 
   out.close();  

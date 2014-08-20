@@ -6,7 +6,7 @@
 
  * Creation Date : 28-05-2014
 
- * Last Modified : Thu 24 Jul 2014 05:00:15 PM EDT
+ * Last Modified : Wed 20 Aug 2014 03:18:33 PM EDT
 
  * Created By : shultz
 
@@ -20,6 +20,8 @@
 #include <map>
 #include <algorithm> 
 
+
+// #define THREE_POINT_HACK_FIT 
 
 
 
@@ -76,6 +78,57 @@ namespace
   }
 
 
+  //////////////////////////////////////////////////////////////////////
+  //
+  // make a plot but also show the individual components 
+  std::string makeFancyLinSumPlot(JackFit &fit,
+      const std::string &mode,
+      const int tf,
+      const int ti)
+  {
+    std::vector<ENSEM::EnsemReal> pars = fit.getJackFitParValues(); 
+    if(pars.size() %3 != 0 ) 
+    {
+      std::cout << __func__ << ": error npars should be " 
+        << "a multiple of three np=" << pars.size() << std::endl; 
+    }
+    
+    ENSEM::EnsemReal fob = pars[0]; 
+    fob = ENSEM::Real(1.0); 
+    ConstTimesExp weight(fob/pars[1]/pars[2],pars[0]);  
+    // One weight(fob); 
+    AxisPlot pt = fit.getJackFitPlotAxis(weight,ti,tf,""); 
+
+    int N = pars.size()/3; 
+    std::vector<int> time;
+    for(int t = 0; t < tf; ++t)
+      time.push_back(t); 
+
+    for(int i =0; i < N; ++i)
+    {
+      ConstTimesExp fcn(pars[i*3+1]*pars[i*3+2], - pars[i*3]); 
+
+      std::vector<double> m,mme,mpe; 
+      for(int t = 0; t < tf; ++t)
+      {
+        ENSEM::EnsemReal foo = fcn(double(t)) * weight(double(t)); 
+        double mean = ENSEM::toDouble(ENSEM::mean(foo));
+        double err = ENSEM::toDouble(ENSEM::sqrt(ENSEM::variance(foo))); 
+        m.push_back(mean); 
+        mme.push_back(mean - err); 
+        mpe.push_back(mean + err); 
+      }
+
+      pt.addLineData(time,m,i+2);
+      pt.addLineData(time,mme,i+2);
+      pt.addLineData(time,mpe,i+2);
+
+    }
+
+    return pt.getAxisPlotString(); 
+
+  }
+
 
   //////////////////////////////////////////////////////////////////////
   //
@@ -84,34 +137,36 @@ namespace
       const FitThreePoint &tp,
       const std::string &mode,
       const int tf,
-      const int ti)
+      const int ti, 
+      const int tsnk, 
+      const int tsrc)
   {
 
     std::cout << __func__ << " tf " << tf << " ti " << ti << std::endl;
 
     // A1exp(-E1(tf-t)) + A2exp(-E2(t-ti)) + C -- C is the formfactor
     AxisPlot plot(pt); 
-    ENSEM::EnsemReal C, A1,A2,E1,E2,dum; 
+    ENSEM::EnsemReal C, Al,Ar,El,Er,dum; 
     C = tp.getFF();
-    A1 = tp.getA1();
-    A2 = tp.getA2();
-    E1 = tp.getE1();
-    E2 = tp.getE2(); 
+    Al = tp.getAl();
+    Ar = tp.getAr();
+    El = tp.getEl();
+    Er = tp.getEr(); 
 
 
-    double dC,dA1,dA2,dE1,dE2;
+    double dC,dAl,dAr,dEl,dEr;
     dC = ENSEM::toDouble(ENSEM::mean(C));
-    dA1 = ENSEM::toDouble(ENSEM::mean(A1)); 
-    dA2 = ENSEM::toDouble(ENSEM::mean(A2));
-    dE1 = ENSEM::toDouble(ENSEM::mean(E1));
-    dE2 = ENSEM::toDouble(ENSEM::mean(E2)); 
+    dAl = ENSEM::toDouble(ENSEM::mean(Al)); 
+    dAr = ENSEM::toDouble(ENSEM::mean(Ar));
+    dEl = ENSEM::toDouble(ENSEM::mean(El));
+    dEr = ENSEM::toDouble(ENSEM::mean(Er)); 
 
-    double eC,eA1,eA2,eE1,eE2;
+    double eC,eAl,eAr,eEl,eEr;
     eC  = sqrt(ENSEM::toDouble(ENSEM::variance(C )));
-    eA1 = sqrt(ENSEM::toDouble(ENSEM::variance(A1))); 
-    eA2 = sqrt(ENSEM::toDouble(ENSEM::variance(A2)));
-    eE1 = sqrt(ENSEM::toDouble(ENSEM::variance(E1)));
-    eE2 = sqrt(ENSEM::toDouble(ENSEM::variance(E2))); 
+    eAl = sqrt(ENSEM::toDouble(ENSEM::variance(Al))); 
+    eAr = sqrt(ENSEM::toDouble(ENSEM::variance(Ar)));
+    eEl = sqrt(ENSEM::toDouble(ENSEM::variance(El)));
+    eEr = sqrt(ENSEM::toDouble(ENSEM::variance(Er))); 
 
     std::vector<double> m,mp,mm, time; 
     double min, max, mean,var, tmp;
@@ -150,8 +205,8 @@ namespace
     // add the sink exp PLUS  FORM FACTOR SO IT LAYS CLOSE TO DATA 
     for(int t = ti; t <= tf; ++t)
     {
-      dum = A1*ENSEM::exp(-E1*ENSEM::Real(double(tf-t)));
-      mean = ENSEM::toDouble(ENSEM::mean(dum)) + dC;
+      dum = Ar*ENSEM::exp(-Er*ENSEM::Real(double(tsnk-t))) + C;
+      mean = ENSEM::toDouble(ENSEM::mean(dum));
       var = sqrt(ENSEM::toDouble(ENSEM::variance(dum)));
       m.push_back(mean);
       mm.push_back(mean - var);
@@ -178,8 +233,8 @@ namespace
     // add the source exp PLUS  FORM FACTOR SO IT LAYS CLOSE TO DATA 
     for(int t = ti; t <= tf; ++t)
     {
-      dum = A2*ENSEM::exp(-E2*ENSEM::Real(t-ti));
-      mean = ENSEM::toDouble(ENSEM::mean(dum)) +dC;
+      dum = Al*ENSEM::exp(-El*ENSEM::Real(t-tsrc)) + C;
+      mean = ENSEM::toDouble(ENSEM::mean(dum)) ;
       var = sqrt(ENSEM::toDouble(ENSEM::variance(dum)));
       m.push_back(mean);
       mm.push_back(mean -var);
@@ -211,17 +266,17 @@ namespace
     lab << "FF = " << std::setprecision(4) << dC << " +/- " << eC;
     plot.addLabel(tf+1,0.5*unit + min,lab.str(),3,0.8);
     lab.str("");
-    lab << "A1 = " << std::setprecision(4) << dA1 << " +/- " << eA1;
-    plot.addLabel(tf+1,1.5*unit + min,lab.str(),4,0.8);
+    lab << "Al = " << std::setprecision(4) << dAl << " +/- " << eAl;
+    plot.addLabel(tf+1,1.5*unit + min,lab.str(),5,0.8);
     lab.str("");
-    lab << "E1 = " << std::setprecision(4) << dE1 << " +/- " << eE1;
-    plot.addLabel(tf+1,2.5*unit + min,lab.str(),4,0.8);
+    lab << "El = " << std::setprecision(4) << dEl << " +/- " << eEl;
+    plot.addLabel(tf+1,2.5*unit + min,lab.str(),5,0.8);
     lab.str("");
-    lab << "A2 = " << std::setprecision(4) << dA2 << " +/- " << eA2;
-    plot.addLabel(tf+1,3.5*unit + min,lab.str(),5,0.8);
+    lab << "Ar = " << std::setprecision(4) << dAr << " +/- " << eAr;
+    plot.addLabel(tf+1,3.5*unit + min,lab.str(),4,0.8);
     lab.str("");
-    lab << "E2 = " << std::setprecision(4) << dE2 << " +/- " << eE2;
-    plot.addLabel(tf+1,4.5*unit + min,lab.str(),5,0.8);
+    lab << "Er = " << std::setprecision(4) << dEr << " +/- " << eEr;
+    plot.addLabel(tf+1,4.5*unit + min,lab.str(),4,0.8);
 
     return plot.getAxisPlotString(); 
 
@@ -261,6 +316,12 @@ namespace
       return ADAT::Handle<FitFunction>( new ThreePointRightExpPlusConst(tf,ti) ); 
     }
 
+    template<int N>
+      ADAT::Handle<FitFunction> createLinearSumExp(const int tf, const int ti)
+      {
+        return ADAT::Handle<FitFunction>( new LinearSumExp<N>() ); 
+      }
+
 
     //////////////////////////////////////////////////////////////////////
     //
@@ -274,6 +335,10 @@ namespace
         func_map["symExpPC"] = createThreePointSymmetricExpPlusConst; 
         func_map["leftExpPC"] = createThreePointLeftExpPlusConst;
         func_map["rightExpPC"] = createThreePointRightExpPlusConst;
+        func_map["linSumExp1"] = createLinearSumExp<1>; 
+        func_map["linSumExp2"] = createLinearSumExp<2>; 
+        func_map["linSumExp3"] = createLinearSumExp<3>; 
+        func_map["linSumExp4"] = createLinearSumExp<4>; 
 
         std::map<std::string, ADAT::Handle<FitFunction> (*)(const int, const int) >::const_iterator it;  
 
@@ -301,9 +366,9 @@ namespace
         ADAT::Handle<FitFunction> func = function_factory(s,t_f,t_i);  
 
         double tmp,tmp2; 
-        double C, El, Eh, Al, Ah;
+        double C, El, Er, Al, Ar;
 
-        ENSEM::Real eC, eEl, eEh, eAl, eAh, et; 
+        ENSEM::Real eC, eEl, eEr, eAl, eAr, et; 
 
         // pick C as the midpoint of the fit range
         tmp = double(t_f - t_i)/2. + t_i; 
@@ -325,22 +390,22 @@ namespace
         // same but sign flip 
         tmp = t_f -1; 
         tmp2 = tmp - 1; 
-        eEh = ENSEM::mean( ENSEM::log ( data.getYUsingNearestX(tmp2) / data.getYUsingNearestX(tmp) ) ) ; 
+        eEr = ENSEM::mean( ENSEM::log ( data.getYUsingNearestX(tmp2) / data.getYUsingNearestX(tmp) ) ) ; 
         et = ENSEM::Real(t_f - tmp); 
-        eAh = ENSEM::mean( data.getYUsingNearestX(tmp) / ENSEM::exp( eEh * et ) ); 
+        eAr = ENSEM::mean( data.getYUsingNearestX(tmp) / ENSEM::exp( eEr * et ) ); 
 
 
         // finite difference slope
         if (  ENSEM::toDouble( ENSEM::mean( data.getYUsingNearestX(tmp) - data.getYUsingNearestX(tmp2) ) ) < 0 ) 
-          eAh = eAh * ENSEM::Real(-1.);
+          eAr = eAr * ENSEM::Real(-1.);
 
 
         // flip the sign of the mass terms here
         C = ENSEM::toDouble(eC); 
         El = -ENSEM::toDouble(eEl); 
-        Eh = ENSEM::toDouble(eEh); 
+        Er = ENSEM::toDouble(eEr); 
         Al = ENSEM::toDouble(eAl); 
-        Ah = ENSEM::toDouble(eAh);  
+        Ar = ENSEM::toDouble(eAr);  
 
         if( func->getFitType() == "ThreePointConstant")
         {
@@ -349,10 +414,10 @@ namespace
         else if (func->getFitType() == "ThreePointDoubleExpPlusConst")
         {
           func->setDefaultParValue("C",C);
-          func->setDefaultParValue("E2",El);
-          func->setDefaultParValue("E1",Eh); 
-          func->setDefaultParValue("A2",Al);
-          func->setDefaultParValue("A1",Ah);
+          func->setDefaultParValue("El",El);
+          func->setDefaultParValue("Er",Er); 
+          func->setDefaultParValue("Al",Al);
+          func->setDefaultParValue("Ar",Ar);
         }
         else if (func->getFitType() == "ThreePointSymmetricExpPlusConst")
         {
@@ -369,8 +434,12 @@ namespace
         else if ( func->getFitType() == "ThreePointRightExpPlusConst")
         {
           func->setDefaultParValue("C",C);
-          func->setDefaultParValue("E",Eh);
-          func->setDefaultParValue("A",Ah); 
+          func->setDefaultParValue("E",Er);
+          func->setDefaultParValue("A",Ar); 
+        }
+        else if ( func->getFitType() == "LinearSumExp")
+        {
+          // do nothing 
         }
         else
         {
@@ -413,6 +482,21 @@ namespace
 
 
             m_fits.getEnsemData().showAll();
+
+#ifdef THREE_POINT_HACK_FIT 
+            // use this three point tech to do something fancy with weighted pcorrs
+            //    -- this is the same as a left exp plus const fit but we need 
+            //        to turn off t0 otherwise the covariance junk fails 
+
+            m_fits.getEnsemData().hideDataByXRange( 8.9, 9.1 ); 
+            std::cout << __PRETTY_FUNCTION__ << std::endl;
+            std::cout << "HEY THIS IS A WARNING, YOU WERE MESSING AROUND AND FORGOT TO TURN OFF"
+              << " A NASTY HACK IN THE FILE " << __FILE__ << " at line " << __LINE__ << std::endl;
+            std::cout << "DONT BE AN IDIOT AND IGNORE THIS UNLESS YOU KNOW WHAT IS HAPPENING " << std::endl;
+
+#endif 
+
+
             m_fits.getEnsemData().hideDataAboveX(t_high + 0.1);
             m_fits.getEnsemData().hideDataBelowX(t_low - 0.1); 
 
@@ -444,10 +528,10 @@ namespace
       else if (func->getFitType() == "ThreePointDoubleExpPlusConst")
       {
         allowed_pars.push_back("C");
-        allowed_pars.push_back("E2");
-        allowed_pars.push_back("E1" );
-        allowed_pars.push_back("A2");
-        allowed_pars.push_back("A1");
+        allowed_pars.push_back("El");
+        allowed_pars.push_back("Er" );
+        allowed_pars.push_back("Al");
+        allowed_pars.push_back("Ar");
       }
       else if (func->getFitType() == "ThreePointSymmetricExpPlusConst")
       {
@@ -467,27 +551,35 @@ namespace
         allowed_pars.push_back("E");
         allowed_pars.push_back("A" );
       }
+      else if ( func->getFitType() == "LinearSumExp" )
+      {
+        // skip  -- this is a hack and 
+        // i dont care if it doesnt work 
+        // for you 
+        return; 
+      }
       else
       {
         std::cerr << __PRETTY_FUNCTION__ << ": error, unknown fit type " << func->getFitType() << std::endl;
         exit (1); 
       }  
 
-        std::vector<std::string>::const_iterator it; 
-        for(int i = 0; i < fitParVals.props.size(); ++i)
+
+      std::vector<std::string>::const_iterator it; 
+      for(int i = 0; i < fitParVals.props.size(); ++i)
+      {
+        it = std::find(allowed_pars.begin(),allowed_pars.end(),fitParVals.props[i].parname); 
+        if( it == allowed_pars.end())
         {
-          it = std::find(allowed_pars.begin(),allowed_pars.end(),fitParVals.props[i].parname); 
-          if( it == allowed_pars.end())
-          {
-            std::cout << __func__ << ": error for " << func->getFitType() 
-              << " requested par " << fitParVals.props[i].parname
-              << "\n is an unknown parameter, available parameters are:" << std::endl; 
-            for(it = allowed_pars.begin(); it != allowed_pars.end(); ++it)
-              std::cout << *it << std::endl;
-            std::cout << "exiting.." << std::endl; 
-            exit(1); 
-          }
+          std::cout << __func__ << ": error for " << func->getFitType() 
+            << " requested par " << fitParVals.props[i].parname
+            << "\n is an unknown parameter, available parameters are:" << std::endl; 
+          for(it = allowed_pars.begin(); it != allowed_pars.end(); ++it)
+            std::cout << *it << std::endl;
+          std::cout << "exiting.." << std::endl; 
+          exit(1); 
         }
+      }
     }
 
     // yikes, this is abstract 
@@ -516,6 +608,7 @@ namespace
         {
           // overwrite here!!!
           func->setDefaultParValue(ptr->parname,ptr->fixParameter.value); 
+          func->setDefaultParError(ptr->parname,0); 
           func->fixParam(ptr->parname); 
         }
       }
@@ -608,8 +701,8 @@ namespace
 
           ss << " " << func->getParName(i) << setw(6) << fixed 
             << setprecision(3) << thisFit.getAvgFitParValue(func->getParName(i))
-            << " +/- " << func->getParName(i) << setw(6) << fixed 
-            << setprecision(3) << thisFit.getAvgFitParError(func->getParName(i));
+            << " +/- " << setw(6) << fixed << setprecision(3) 
+            << thisFit.getAvgFitParError(func->getParName(i));
         }
         ss << std::endl; 
 
@@ -652,7 +745,7 @@ FitThreePoint::FitThreePoint(EnsemData data,
     dhigh = std::max(dhigh,stmp); 
   }
 
-  ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC,leftExpPC,rightExpPC; 
+  ADAT::Handle<FitFunction> dExpPC,Constant,symExpPC,leftExpPC,rightExpPC,linSumExp; 
 
   if( fit_type == "symExpPC" )
     symExpPC = tryThreePointFit("symExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits,useVals,fitParVals);
@@ -672,10 +765,19 @@ FitThreePoint::FitThreePoint(EnsemData data,
     dExpPC = tryThreePointFit("dExpPC",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits,useVals,fitParVals);
     Constant = tryThreePointFit("const",tsnk,tsrc,t_f, t_i,minTSlice, data, m_fitComp, m_fits,useVals,fitParVals);
   }
+  else if( 
+      (fit_type == "linSumExp1" ) || 
+      (fit_type == "linSumExp2" ) || 
+      (fit_type == "linSumExp3" ) || 
+      (fit_type == "linSumExp4" ) || 
+      (fit_type == "linSumExp5" ) )
+  {
+    linSumExp = tryThreePointFit(fit_type,tsnk,tsrc,t_f,t_i,minTSlice,data,m_fitComp,m_fits,useVals,fitParVals); 
+  } 
   else
   {
     std::cerr << __func__ << ": unknown fit type " << fit_type 
-      << "options are {all , dExpPC , const, symExpPC, leftExpPC, rightExpPC }" << std::endl;
+      << "options are {all , dExpPC , const, symExpPC, leftExpPC, rightExpPC , linSumExp }" << std::endl;
     exit(1);
   }
 
@@ -686,10 +788,10 @@ FitThreePoint::FitThreePoint(EnsemData data,
   double tip1 = double(t_i + 1);  // this reference to double crap is getting annoying..
   m_FF = data.getYUsingNearestX(tip1);
   m_FF = ENSEM::Real(0.);
-  m_A1 = m_FF;
-  m_E1 = m_FF;
-  m_A2 = m_FF;
-  m_E2 = m_FF; 
+  m_Al = m_FF;
+  m_El = m_FF;
+  m_Ar = m_FF;
+  m_Er = m_FF; 
 
 
   if(best.fitname == "FAILED")
@@ -747,10 +849,10 @@ FitThreePoint::FitThreePoint(EnsemData data,
       {
         matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
-        m_A1 = bestFit.getJackFitParValue("A");
-        m_A2 = bestFit.getJackFitParValue("A");
-        m_E1 = bestFit.getJackFitParValue("E");
-        m_E2 = bestFit.getJackFitParValue("E");
+        m_Al = bestFit.getJackFitParValue("A");
+        m_Ar = bestFit.getJackFitParValue("A");
+        m_El = bestFit.getJackFitParValue("E");
+        m_Er = bestFit.getJackFitParValue("E");
       }
     }
 
@@ -760,10 +862,10 @@ FitThreePoint::FitThreePoint(EnsemData data,
       {
         matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
-        m_A1 = bestFit.getJackFitParValue("A1");
-        m_E1 = bestFit.getJackFitParValue("E1");
-        m_A2 = bestFit.getJackFitParValue("A2");
-        m_E2 = bestFit.getJackFitParValue("E2");
+        m_Al = bestFit.getJackFitParValue("Al");
+        m_El = bestFit.getJackFitParValue("El");
+        m_Ar = bestFit.getJackFitParValue("Ar");
+        m_Er = bestFit.getJackFitParValue("Er");
       }
     }
 
@@ -773,8 +875,8 @@ FitThreePoint::FitThreePoint(EnsemData data,
       {
         matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
-        m_A2 = bestFit.getJackFitParValue("A");
-        m_E2 = bestFit.getJackFitParValue("E");
+        m_Al = bestFit.getJackFitParValue("A");
+        m_El = bestFit.getJackFitParValue("E");
       }
     }
 
@@ -784,8 +886,8 @@ FitThreePoint::FitThreePoint(EnsemData data,
       {
         matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
-        m_A1 = bestFit.getJackFitParValue("A");
-        m_E1 = bestFit.getJackFitParValue("E");
+        m_Ar = bestFit.getJackFitParValue("A");
+        m_Er = bestFit.getJackFitParValue("E");
       }
     }
 
@@ -795,6 +897,20 @@ FitThreePoint::FitThreePoint(EnsemData data,
       {
         matched = true; 
         m_FF = bestFit.getJackFitParValue("C");
+      }
+    }
+
+    if (&*linSumExp)
+    {
+      if( best.ff->getFitType() == linSumExp->getFitType())
+      {
+        matched = true; 
+        std::stringstream plot; 
+        plot << bestFit.makeJackFitPlotAxis(t_i -1, t_f +2 , ""); 
+        m_axis_plot = plot.str(); 
+        AxisPlot pt = bestFit.getJackFitPlotAxis(t_i -2 , t_f +2 , "" ); 
+        m_axis_plot_component = makeFancyLinSumPlot(bestFit,"foo",t_high,t_low); 
+        return; 
       }
     }
 
@@ -816,7 +932,7 @@ FitThreePoint::FitThreePoint(EnsemData data,
 
     AxisPlot fancy_plot = bestFit.getJackFitPlotAxis(t_i -2 , t_f + 2, lab.str());
 
-    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,m_best_fit_name,t_high, t_low);
+    m_axis_plot_component =  makeFancyPlot(fancy_plot,*this,m_best_fit_name,t_high, t_low,tsnk,tsrc);
 
   }// close if ! failed
 

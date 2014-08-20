@@ -45,10 +45,10 @@ struct FitThreePoint
 
   // FF is the form factor, everything else is just a fit parameter
   ENSEM::EnsemReal getFF(void) const {return m_FF;}
-  ENSEM::EnsemReal getA1(void) const {return m_A1;}
-  ENSEM::EnsemReal getE1(void) const {return m_E1;}
-  ENSEM::EnsemReal getA2(void) const {return m_A2;}
-  ENSEM::EnsemReal getE2(void) const {return m_E2;}
+  ENSEM::EnsemReal getAl(void) const {return m_Al;}
+  ENSEM::EnsemReal getEl(void) const {return m_El;}
+  ENSEM::EnsemReal getAr(void) const {return m_Ar;}
+  ENSEM::EnsemReal getEr(void) const {return m_Er;}
 
   // self explanatory 
   double getChisq(void) const {return m_chisq;}
@@ -71,10 +71,10 @@ struct FitThreePoint
   double m_nDoF;
   double dlow,dhigh; 
   ENSEM::EnsemReal m_FF;
-  ENSEM::EnsemReal m_A1;
-  ENSEM::EnsemReal m_E1; 
-  ENSEM::EnsemReal m_A2;
-  ENSEM::EnsemReal m_E2;
+  ENSEM::EnsemReal m_Al;
+  ENSEM::EnsemReal m_El; 
+  ENSEM::EnsemReal m_Ar;
+  ENSEM::EnsemReal m_Er;
 
 };
 
