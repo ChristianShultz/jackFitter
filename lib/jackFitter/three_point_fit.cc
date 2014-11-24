@@ -6,7 +6,7 @@
 
  * Creation Date : 28-05-2014
 
- * Last Modified : Wed 20 Aug 2014 03:18:33 PM EDT
+ * Last Modified : Mon 10 Nov 2014 02:58:11 PM EST
 
  * Created By : shultz
 
@@ -591,6 +591,7 @@ namespace
         if(ptr->defaultParValue.use)
         {
           func->setDefaultParValue(ptr->parname,ptr->defaultParValue.value); 
+          func->setDefaultParError(ptr->parname,0.2*(ptr->defaultParValue.value)); 
         }
         if(ptr->defaultParError.use)
         {

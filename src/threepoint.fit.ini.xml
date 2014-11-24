@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<props>
+
+  <threePointProps>
+    <fit_type>dExpPC</fit_type>
+    <baseProp>CompareFitsByChisqPerNDoF</baseProp>
+    <biasProp>none</biasProp>                     
+    <extraProps>                                 
+    </extraProps>                                       
+    <tlow>4</tlow>                                 
+    <thigh>23</thigh>
+    <minTSlice>19</minTSlice>
+    <SVCutOff>2e-4</SVCutOff>
+  </threePointProps>
+
+  <tsrc>0</tsrc>
+  <tsnk>28</tsnk>
+  <rl>0</rl>
+  <correlator>A1mr1p000.D4A1r1p-100.D4A2r1p100</correlator>
+
+  <fitParValues>
+    <props>
+      <elem>
+        <parname>Al</parname>
+        <value>
+          <use>true</use>
+          <val>-0.055</val>
+        </value>
+      </elem>
+      <elem>
+        <parname>El</parname>
+        <llimit>
+          <use>true</use>
+          <val>0.01</val>
+        </llimit>
+      </elem>
+      <elem>
+        <parname>Ar</parname>
+        <value>
+          <use>true</use>
+          <val>0.22</val>
+        </value>
+      </elem>
+      <elem>
+        <parname>Er</parname>
+        <value>
+          <use>true</use>
+          <val>0.33</val>
+        </value>
+      </elem>
+    </props>
+  </fitParValues>
+</props>
