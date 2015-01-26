@@ -8,6 +8,7 @@ AM_CXXFLAGS = 	-I@top_srcdir@/lib		\
 
 #utils
 nobase_include_HEADERS =   \
+													 jackFitter/jackFitter.h \
 													 jackFitter/ensem_data.h    \
 													 jackFitter/ensem_ensem_chisq_fitter.h    \
 													 jackFitter/fit_correlators.h    \

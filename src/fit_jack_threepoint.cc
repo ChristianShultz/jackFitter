@@ -6,7 +6,7 @@
 
  * Creation Date : 01-02-2013
 
- * Last Modified : Tue 06 May 2014 11:30:11 AM EDT
+ * Last Modified : Sat 06 Dec 2014 01:08:08 PM EST
 
  * Created By : shultz
 
@@ -95,6 +95,10 @@ int main(int argc , char * argv[])
   std::ofstream out ( grrr.c_str() ) ; 
   out << fit.getFitPlotStringWithComponents(); 
   out.close();  
+
+  // save the constant 
+  ENSEM::EnsemReal FF = fit.getFF(); 
+  ENSEM::write( dat + std::string(".FF.jack") , FF); 
 
   return 0; 
 }

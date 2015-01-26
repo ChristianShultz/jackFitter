@@ -6,7 +6,7 @@
 
  * Creation Date : 01-02-2013
 
- * Last Modified : Sun 17 Aug 2014 03:21:00 PM EDT
+ * Last Modified : Sat 06 Dec 2014 01:16:01 PM EST
 
  * Created By : shultz
 
@@ -113,7 +113,7 @@ int main(int argc , char * argv[])
 
   // get data
   //
-  
+
   ENSEM::EnsemVectorReal corr;
 
   // handle complex vs real types here 
@@ -173,17 +173,22 @@ int main(int argc , char * argv[])
 
   // save plots
   //
-  fit.saveFitPlot( mXMLStruct.correlator + std::string(".fit.ax") ) ; 
+  // skip this guy, component plot is more useful 
+  // fit.saveFitPlot( mXMLStruct.correlator + std::string(".fit.ax") ) ; 
 
   std::string gr = mXMLStruct.correlator + std::string(".fitComp.ax"); 
   std::ofstream fooboo (gr.c_str() ); 
   fooboo << fit.getFitPlotStringWithComponents(); 
   fooboo.close(); 
 
-  std::string grrr = mXMLStruct.correlator + std::string(".fit.summary"); 
-  std::ofstream out ( grrr.c_str() ) ; 
-  out << fit.getFitSummary(); 
-  out.close();  
+  // dont really need this 
+  //   std::string grrr = mXMLStruct.correlator + std::string(".fit.summary"); 
+  //   std::ofstream out ( grrr.c_str() ) ; 
+  //   out << fit.getFitSummary(); 
+  //   out.close();  
+
+  // save the constant 
+  ENSEM::write( mXMLStruct.correlator + std::string(".FF.jack") , fit.getFF()); 
 
   return 0; 
 }
